@@ -65,7 +65,7 @@ Evaluate the response on three dimensions:
 Provide 3-4 sentences of supportive feedback. Note what they did well, what they could add, and whether they improved compared to their original submission (if available). Be encouraging and coach-like. Do NOT score or grade. End with one specific suggestion for improvement.`;
 
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-6-20250725",
+      model: "claude-sonnet-4-6",
       max_tokens: 400,
       messages: [{ role: "user", content: prompt }],
     });
