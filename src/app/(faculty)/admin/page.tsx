@@ -17,10 +17,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Loader2,
   CheckCircle,
   Settings,
   BookOpen,
+  AlertTriangle,
+  Trash2,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -31,6 +41,9 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [tab, setTab] = useState<"settings" | "cases">("settings");
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetResult, setResetResult] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -82,6 +95,24 @@ export default function AdminPage() {
         c.id === caseItem.id ? { ...c, is_active: !c.is_active } : c
       )
     );
+  }
+
+  async function handleReset() {
+    setResetting(true);
+    setResetResult(null);
+    try {
+      const { data, error } = await supabase.rpc("reset_test_data");
+      if (error) throw error;
+      setResetResult(
+        `Reset complete: ${data.cleared.submissions} submissions, ${data.cleared.notes} notes, ${data.cleared.osce_responses} OSCE responses cleared.`
+      );
+      setShowResetConfirm(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setResetResult(`Reset failed: ${message}`);
+    } finally {
+      setResetting(false);
+    }
   }
 
   if (loading) {
@@ -259,6 +290,90 @@ export default function AdminPage() {
           ))}
         </div>
       )}
+
+      {/* Testing Tools — Danger Zone */}
+      <div className="border-t pt-6 mt-6 space-y-3">
+        <h2 className="text-sm font-semibold text-destructive flex items-center gap-1.5">
+          <AlertTriangle className="h-4 w-4" />
+          Testing Tools
+        </h2>
+        <Card className="border-destructive/30">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium">Reset Test Data</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Clears all submissions, notes, and OSCE responses.
+                  Preserves roster, cases, schedule, and settings.
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="shrink-0"
+                onClick={() => setShowResetConfirm(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Reset
+              </Button>
+            </div>
+            {resetResult && (
+              <p
+                className={`text-xs mt-3 ${
+                  resetResult.startsWith("Reset complete")
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-destructive"
+                }`}
+              >
+                {resetResult.startsWith("Reset complete") && (
+                  <CheckCircle className="h-3.5 w-3.5 inline mr-1" />
+                )}
+                {resetResult}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Reset Confirmation Dialog */}
+      <Dialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset all test data?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete all student submissions, notes, and
+              OSCE responses. The roster, cases, schedule, and settings will be
+              preserved.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm font-medium text-destructive">
+            This cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowResetConfirm(false)}
+              disabled={resetting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReset}
+              disabled={resetting}
+            >
+              {resetting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  Resetting...
+                </>
+              ) : (
+                "Reset Test Data"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
