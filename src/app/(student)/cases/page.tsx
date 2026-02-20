@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/user-context";
-import type { FcmCase, FcmSchedule, FcmSubmission } from "@/types";
+import type { FcmCase, FcmSchedule, FcmSubmission, FcmQuizScore } from "@/types";
+import {
+  computeTimeline,
+  formatSessionCountdown,
+  type CaseTimeline,
+  type RefreshUrgency,
+} from "@/lib/case-timeline";
 import {
   Card,
   CardContent,
@@ -13,20 +19,124 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle, FileEdit, ArrowRight, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Clock,
+  CheckCircle,
+  FileEdit,
+  ArrowRight,
+  Lock,
+  Zap,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CaseWithSchedule {
   schedule: FcmSchedule;
   case_data: FcmCase;
   submission: FcmSubmission | null;
+  timeline: CaseTimeline;
 }
 
 function getStatusBadge(submission: FcmSubmission | null) {
-  if (!submission) return { label: "New", variant: "outline" as const, icon: Clock };
+  if (!submission)
+    return { label: "New", variant: "outline" as const, icon: Clock };
   if (submission.status === "submitted" || submission.status === "resubmitted")
-    return { label: "Submitted", variant: "default" as const, icon: CheckCircle };
-  return { label: "In Progress", variant: "secondary" as const, icon: FileEdit };
+    return {
+      label: "Submitted",
+      variant: "default" as const,
+      icon: CheckCircle,
+    };
+  return {
+    label: "In Progress",
+    variant: "secondary" as const,
+    icon: FileEdit,
+  };
+}
+
+const urgencyBorderColor: Record<RefreshUrgency, string> = {
+  none: "border-l-primary",
+  calm: "border-l-green-500",
+  nudge: "border-l-blue-500",
+  attention: "border-l-amber-500",
+};
+
+function ReviewCard({
+  c,
+  onClick,
+}: {
+  c: CaseWithSchedule;
+  onClick: () => void;
+}) {
+  const { timeline } = c;
+  const sessionLabel = formatSessionCountdown(timeline.daysUntilSession);
+  const isAttention = timeline.urgency === "attention";
+
+  return (
+    <Card
+      className={cn(
+        "cursor-pointer border-l-4 hover:shadow-md transition-all",
+        urgencyBorderColor[timeline.urgency]
+      )}
+      onClick={onClick}
+    >
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <CardDescription className="text-xs">
+              {c.schedule.week_label}
+            </CardDescription>
+            <CardTitle className="text-base mt-1">
+              {c.case_data.chief_complaint}
+            </CardTitle>
+          </div>
+          <Badge
+            variant={isAttention ? "default" : "secondary"}
+            className={cn(
+              "ml-2 shrink-0",
+              isAttention && "bg-amber-500 hover:bg-amber-600"
+            )}
+          >
+            Session {sessionLabel}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0 space-y-3">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+          {c.case_data.body_system && <span>{c.case_data.body_system}</span>}
+          {timeline.daysSinceSubmission !== null && (
+            <span>
+              Submitted{" "}
+              {timeline.daysSinceSubmission === 0
+                ? "today"
+                : timeline.daysSinceSubmission === 1
+                  ? "yesterday"
+                  : `${timeline.daysSinceSubmission}d ago`}
+            </span>
+          )}
+          {timeline.lastQuizScore && (
+            <span>
+              Last: {timeline.lastQuizScore.score}/
+              {timeline.lastQuizScore.total}
+            </span>
+          )}
+        </div>
+        <Button
+          variant={isAttention ? "default" : "outline"}
+          className={cn(
+            "w-full",
+            isAttention && "bg-amber-500 hover:bg-amber-600 text-white"
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.location.href = `/cases/${c.case_data.id}/quick-refresh`;
+          }}
+        >
+          <Zap className="h-4 w-4 mr-1.5" />
+          Quick Refresh — 60s
+        </Button>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function CasesPage() {
@@ -39,28 +149,47 @@ export default function CasesPage() {
     if (!user) return;
 
     async function fetchCases() {
-      // Get schedule for user's group
-      const { data: schedules } = await supabase
-        .from("fcm_schedule")
-        .select("*, fcm_cases(*)")
-        .or(`fcm_group.eq.${user!.fcm_group},fcm_group.is.null`)
-        .order("unlock_date", { ascending: true });
+      const [schedulesRes, submissionsRes, scoresRes] = await Promise.all([
+        supabase
+          .from("fcm_schedule")
+          .select("*, fcm_cases(*)")
+          .or(`fcm_group.eq.${user!.fcm_group},fcm_group.is.null`)
+          .order("unlock_date", { ascending: true }),
+        supabase
+          .from("fcm_submissions")
+          .select("*")
+          .eq("user_id", user!.id),
+        supabase
+          .from("fcm_quiz_scores")
+          .select("*")
+          .eq("user_id", user!.id),
+      ]);
 
-      // Get user's submissions
-      const { data: submissions } = await supabase
-        .from("fcm_submissions")
-        .select("*")
-        .eq("user_id", user!.id);
+      const schedules = schedulesRes.data;
+      const submissions = submissionsRes.data;
+      const scores = (scoresRes.data as FcmQuizScore[]) || [];
 
       if (schedules) {
-        const caseList: CaseWithSchedule[] = schedules.map((s) => ({
-          schedule: s,
-          case_data: s.fcm_cases,
-          submission:
+        const caseList: CaseWithSchedule[] = schedules.map((s) => {
+          const submission =
             submissions?.find(
               (sub: FcmSubmission) => sub.case_id === s.case_id
-            ) || null,
-        }));
+            ) || null;
+          const caseScores = scores.filter(
+            (sc) => sc.case_id === s.case_id
+          );
+          const timeline = computeTimeline(
+            s.session_date,
+            submission?.submitted_at || null,
+            caseScores
+          );
+          return {
+            schedule: s,
+            case_data: s.fcm_cases,
+            submission,
+            timeline,
+          };
+        });
         setCases(caseList);
       }
 
@@ -79,8 +208,28 @@ export default function CasesPage() {
   }
 
   const today = new Date().toISOString().split("T")[0];
-  const currentCases = cases.filter((c) => c.schedule.unlock_date <= today);
-  const upcomingCases = cases.filter((c) => c.schedule.unlock_date > today);
+
+  // 4-section split
+  const readyToReview = cases.filter(
+    (c) =>
+      c.timeline.isSubmitted &&
+      !c.timeline.isSessionPast &&
+      c.schedule.unlock_date <= today
+  );
+  const current = cases.filter(
+    (c) =>
+      c.schedule.unlock_date <= today &&
+      !c.timeline.isSessionPast &&
+      !c.timeline.isSubmitted
+  );
+  const completed = cases.filter((c) => c.timeline.isSessionPast);
+  const upcoming = cases.filter((c) => c.schedule.unlock_date > today);
+
+  const hasNoCases =
+    readyToReview.length === 0 &&
+    current.length === 0 &&
+    completed.length === 0 &&
+    upcoming.length === 0;
 
   return (
     <div className="p-4 space-y-6">
@@ -91,7 +240,7 @@ export default function CasesPage() {
         </p>
       </div>
 
-      {currentCases.length === 0 && upcomingCases.length === 0 && (
+      {hasNoCases && (
         <Card>
           <CardContent className="p-6 text-center text-sm text-muted-foreground">
             No cases assigned yet. Check back soon.
@@ -99,13 +248,29 @@ export default function CasesPage() {
         </Card>
       )}
 
+      {/* Ready to Review */}
+      {readyToReview.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            Ready to Review
+          </h2>
+          {readyToReview.map((c) => (
+            <ReviewCard
+              key={c.schedule.id}
+              c={c}
+              onClick={() => router.push(`/cases/${c.case_data.id}`)}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Current Cases */}
-      {currentCases.length > 0 && (
+      {current.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
             Current
           </h2>
-          {currentCases.map((c) => {
+          {current.map((c) => {
             const status = getStatusBadge(c.submission);
             const StatusIcon = status.icon;
             return (
@@ -134,7 +299,13 @@ export default function CasesPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{c.case_data.body_system}</span>
-                      <span>Due {new Date(c.schedule.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                      <span>
+                        Due{" "}
+                        {new Date(c.schedule.due_date).toLocaleDateString(
+                          "en-US",
+                          { month: "short", day: "numeric" }
+                        )}
+                      </span>
                     </div>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </div>
@@ -145,22 +316,78 @@ export default function CasesPage() {
         </div>
       )}
 
+      {/* Completed Cases */}
+      {completed.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            Completed
+          </h2>
+          {completed.map((c) => {
+            const status = getStatusBadge(c.submission);
+            const StatusIcon = status.icon;
+            return (
+              <Card
+                key={c.schedule.id}
+                className="cursor-pointer opacity-60 hover:opacity-80 transition-opacity"
+                onClick={() => router.push(`/cases/${c.case_data.id}`)}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardDescription className="text-xs">
+                        {c.schedule.week_label}
+                      </CardDescription>
+                      <CardTitle className="text-sm mt-1">
+                        {c.case_data.chief_complaint}
+                      </CardTitle>
+                    </div>
+                    <Badge variant={status.variant} className="ml-2 shrink-0">
+                      <StatusIcon className="h-3 w-3 mr-1" />
+                      {status.label}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    {c.case_data.body_system && (
+                      <span>{c.case_data.body_system}</span>
+                    )}
+                    {c.timeline.lastQuizScore && (
+                      <span>
+                        Last quiz: {c.timeline.lastQuizScore.score}/
+                        {c.timeline.lastQuizScore.total}
+                      </span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
       {/* Upcoming Cases */}
-      {upcomingCases.length > 0 && (
+      {upcoming.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
             Upcoming
           </h2>
-          {upcomingCases.map((c) => (
-            <Card key={c.schedule.id} className="opacity-50 border-dashed pointer-events-none">
+          {upcoming.map((c) => (
+            <Card
+              key={c.schedule.id}
+              className="opacity-50 border-dashed pointer-events-none"
+            >
               <CardHeader className="pb-1 pt-3">
                 <CardDescription className="text-xs flex items-center gap-1">
                   <Lock className="h-3 w-3" />
                   {c.schedule.week_label} — Unlocks{" "}
-                  {new Date(c.schedule.unlock_date).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {new Date(c.schedule.unlock_date).toLocaleDateString(
+                    "en-US",
+                    {
+                      month: "short",
+                      day: "numeric",
+                    }
+                  )}
                 </CardDescription>
                 <CardTitle className="text-sm mt-1">
                   {c.case_data.chief_complaint}

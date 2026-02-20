@@ -97,6 +97,18 @@ CREATE TABLE IF NOT EXISTS fcm_osce_responses (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- fcm_quiz_scores: Persisted quiz attempt scores
+CREATE TABLE IF NOT EXISTS fcm_quiz_scores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES fcm_users(id) ON DELETE CASCADE,
+  case_id UUID REFERENCES fcm_cases(id) ON DELETE CASCADE,
+  score INTEGER NOT NULL,
+  total INTEGER NOT NULL,
+  quiz_mode TEXT NOT NULL DEFAULT 'full',
+  completed_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_quiz_scores_user_case ON fcm_quiz_scores(user_id, case_id);
+
 -- RLS policies (permissive for prototype)
 ALTER TABLE fcm_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fcm_cases ENABLE ROW LEVEL SECURITY;
@@ -114,3 +126,6 @@ CREATE POLICY "Allow all for fcm_submissions" ON fcm_submissions FOR ALL USING (
 CREATE POLICY "Allow all for fcm_notes" ON fcm_notes FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all for fcm_settings" ON fcm_settings FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all for fcm_osce_responses" ON fcm_osce_responses FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE fcm_quiz_scores ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all for fcm_quiz_scores" ON fcm_quiz_scores FOR ALL USING (true) WITH CHECK (true);

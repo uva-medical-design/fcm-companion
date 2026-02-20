@@ -5,116 +5,82 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/user-context";
 import type { FcmCase, FcmSubmission, FeedbackResult } from "@/types";
-import { generateCards, type QuizCard } from "@/lib/quiz-cards";
-import { RecallCard, TrueFalseCard, MultipleChoiceCard } from "@/components/quiz-card-renderer";
+import { generateQuickCards, type QuizCard } from "@/lib/quiz-cards";
+import {
+  RecallCard,
+  TrueFalseCard,
+  MultipleChoiceCard,
+} from "@/components/quiz-card-renderer";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
   ChevronRight,
   Loader2,
-  Trophy,
+  Zap,
   RotateCcw,
+  ArrowRight,
 } from "lucide-react";
 
-// ─── Summary screen ─────────────────────────────────────────────────
-function SummaryScreen({
+// ─── Quick summary screen ───────────────────────────────────────────
+function QuickSummary({
   total,
   correct,
-  caseData,
-  feedback,
+  caseId,
   onRestart,
-  onBack,
+  onDone,
 }: {
   total: number;
   correct: number;
-  caseData: FcmCase;
-  feedback: FeedbackResult;
+  caseId: string;
   onRestart: () => void;
-  onBack: () => void;
+  onDone: () => void;
 }) {
-  const pct = Math.round((correct / total) * 100);
-  const emoji =
-    pct >= 80 ? "Great job" : pct >= 50 ? "Getting there" : "Keep practicing";
+  const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
+  const isReady = pct >= 75;
+  const router = useRouter();
 
   return (
     <div className="flex flex-col items-center text-center gap-6 py-4">
-      <Trophy
+      <Zap
         className={cn(
           "h-12 w-12",
-          pct >= 80
-            ? "text-yellow-500"
-            : pct >= 50
-              ? "text-blue-500"
-              : "text-muted-foreground"
+          isReady ? "text-green-500" : "text-amber-500"
         )}
       />
       <div>
         <p className="text-2xl font-bold">
           {correct}/{total}
         </p>
-        <p className="text-sm text-muted-foreground mt-1">{emoji}</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          {isReady
+            ? "You're ready for FCM. The key concepts are fresh in your mind."
+            : "Worth another look — a quick review will help lock things in."}
+        </p>
       </div>
 
-      {/* Key takeaways */}
-      <Card className="w-full text-left">
-        <CardContent className="p-4 space-y-3">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Key Takeaways
-          </p>
-
-          <p className="text-sm">
-            <span className="font-medium">Chief complaint:</span>{" "}
-            {caseData.chief_complaint}
-          </p>
-
-          {feedback.cant_miss_missed.length > 0 && (
-            <div className="text-sm">
-              <span className="font-medium text-amber-700 dark:text-amber-400">
-                Can&apos;t-miss to remember:
-              </span>{" "}
-              {feedback.cant_miss_missed.join(", ")}
-            </div>
-          )}
-
-          {feedback.common_missed.length > 0 && (
-            <div className="text-sm">
-              <span className="font-medium">Common diagnoses to review:</span>{" "}
-              {feedback.common_missed.slice(0, 3).join(", ")}
-            </div>
-          )}
-
-          {/* VINDICATE coverage reminder */}
-          {Object.values(feedback.vindicate_coverage).filter(Boolean).length <
-            5 && (
-            <p className="text-sm text-muted-foreground">
-              Try to expand your VINDICATE coverage next time — you covered{" "}
-              {
-                Object.values(feedback.vindicate_coverage).filter(Boolean)
-                  .length
-              }{" "}
-              of 9 categories.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="flex gap-3 w-full">
-        <Button variant="outline" className="flex-1" onClick={onRestart}>
-          <RotateCcw className="h-4 w-4 mr-1" />
-          Try Again
+      <div className="flex flex-col gap-2 w-full">
+        <Button variant="outline" onClick={onRestart}>
+          <RotateCcw className="h-4 w-4 mr-1.5" />
+          Again
         </Button>
-        <Button className="flex-1" onClick={onBack}>
-          Done
+        <Button
+          variant="outline"
+          onClick={() => router.push(`/cases/${caseId}/refresh`)}
+        >
+          <ArrowRight className="h-4 w-4 mr-1.5" />
+          Full Quiz
         </Button>
+        <Button onClick={onDone}>Done</Button>
       </div>
     </div>
   );
 }
 
 // ─── Main page component ────────────────────────────────────────────
-export default function RefreshPage() {
+export default function QuickRefreshPage() {
   const { caseId } = useParams<{ caseId: string }>();
   const { user } = useUser();
   const router = useRouter();
@@ -157,7 +123,7 @@ export default function RefreshPage() {
 
   const cards = useMemo(() => {
     if (!caseData || !submission || !feedback) return [];
-    return generateCards(caseData, submission, feedback);
+    return generateQuickCards(caseData, submission, feedback);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseData, submission, feedback, quizKey]);
 
@@ -181,7 +147,7 @@ export default function RefreshPage() {
       case_id: caseId,
       score: correctCount,
       total: cards.length,
-      quiz_mode: "full",
+      quiz_mode: "quick",
     });
   }, [isFinished, scoreSaved, user, caseId, correctCount, cards.length]);
 
@@ -234,13 +200,12 @@ export default function RefreshPage() {
   if (isFinished) {
     return (
       <div className="p-4 max-w-md mx-auto">
-        <SummaryScreen
+        <QuickSummary
           total={cards.length}
           correct={correctCount}
-          caseData={caseData!}
-          feedback={feedback}
+          caseId={caseId}
           onRestart={handleRestart}
-          onBack={() => router.push(`/cases/${caseId}`)}
+          onDone={() => router.push(`/cases/${caseId}`)}
         />
       </div>
     );
@@ -251,7 +216,7 @@ export default function RefreshPage() {
 
   return (
     <div className="flex flex-col min-h-[calc(100dvh-8rem)] md:min-h-[calc(100dvh-3rem)]">
-      {/* Top bar: back + progress */}
+      {/* Top bar */}
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center justify-between mb-3">
           <button
@@ -261,9 +226,15 @@ export default function RefreshPage() {
             <ArrowLeft className="h-4 w-4" />
             Exit
           </button>
-          <span className="text-xs text-muted-foreground">
-            {currentCard + 1} / {cards.length}
-          </span>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs">
+              <Zap className="h-3 w-3 mr-1" />
+              ~60s
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {currentCard + 1} / {cards.length}
+            </span>
+          </div>
         </div>
 
         {/* Progress bar */}
@@ -365,3 +336,4 @@ export default function RefreshPage() {
     </div>
   );
 }
+

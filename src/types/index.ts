@@ -109,6 +109,16 @@ export interface FcmSettings {
   updated_at: string;
 }
 
+export interface FcmQuizScore {
+  id: string;
+  user_id: string;
+  case_id: string;
+  score: number;
+  total: number;
+  quiz_mode: "full" | "quick";
+  completed_at: string;
+}
+
 export interface OsceResponse {
   id: string;
   user_id: string;

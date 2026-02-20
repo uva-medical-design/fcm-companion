@@ -381,7 +381,7 @@ export default function CaseDifferentialPage() {
                   View Feedback
                 </Button>
               </Link>
-              <Link href={`/cases/${caseId}/refresh`}>
+              <Link href={`/cases/${caseId}/quick-refresh`}>
                 <Button variant="outline" size="sm">
                   Quick Quiz
                 </Button>
