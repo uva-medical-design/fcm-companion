@@ -1,20 +1,16 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { PRACTICE_CASES } from "@/data/practice-cases";
-import { searchDiagnoses, type DiagnosisSearchResult } from "@/data/diagnosis-lookup";
 import type { DiagnosisEntry } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { DiagnosisInput } from "@/components/diagnosis-input";
+import { DiagnosisRow } from "@/components/diagnosis-row";
+import { FeedbackNarrative } from "@/components/feedback-narrative";
 import {
-  Plus,
-  X,
-  ChevronUp,
-  ChevronDown,
   Send,
   CheckCircle,
   XCircle,
@@ -24,35 +20,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-function ConfidenceRating({
-  value,
-  onChange,
-}: {
-  value: number | undefined;
-  onChange: (val: number) => void;
-}) {
-  return (
-    <div className="flex items-center gap-1">
-      <span className="text-xs text-muted-foreground mr-1">Confidence:</span>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => onChange(n)}
-          className={cn(
-            "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium transition-colors",
-            value === n
-              ? "bg-primary text-primary-foreground"
-              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-          )}
-        >
-          {n}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 interface PracticeFeedback {
   narrative: string;
@@ -65,11 +32,6 @@ export default function PracticeCasePage() {
   const practiceCase = PRACTICE_CASES.find((c) => c.id === practiceId);
 
   const [diagnoses, setDiagnoses] = useState<DiagnosisEntry[]>([]);
-  const [inputValue, setInputValue] = useState("");
-  const [suggestions, setSuggestions] = useState<DiagnosisSearchResult[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<PracticeFeedback | null>(null);
@@ -92,42 +54,15 @@ export default function PracticeCasePage() {
     }
   }, [practiceId]);
 
-  function handleInputChange(value: string) {
-    setInputValue(value);
-    if (value.trim().length >= 2) {
-      const results = searchDiagnoses(value);
-      setSuggestions(results);
-      setShowSuggestions(results.length > 0);
-      setHighlightedIndex(-1);
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
-  }
-
-  const addDiagnosisWithName = useCallback(
+  const addDiagnosis = useCallback(
     (name: string) => {
-      const trimmed = name.trim();
-      if (!trimmed) return;
-      const alreadyExists = diagnoses.some(
-        (d) => d.diagnosis.toLowerCase() === trimmed.toLowerCase()
-      );
-      if (alreadyExists) return;
       setDiagnoses((prev) => [
         ...prev,
-        { diagnosis: trimmed, sort_order: prev.length },
+        { diagnosis: name, sort_order: prev.length },
       ]);
-      setInputValue("");
-      setSuggestions([]);
-      setShowSuggestions(false);
-      setHighlightedIndex(-1);
     },
-    [diagnoses]
+    []
   );
-
-  const addDiagnosis = useCallback(() => {
-    addDiagnosisWithName(inputValue);
-  }, [inputValue, addDiagnosisWithName]);
 
   function removeDiagnosis(index: number) {
     setDiagnoses((prev) =>
@@ -294,7 +229,7 @@ export default function PracticeCasePage() {
                 Correct Diagnosis: {feedback.correct_diagnosis}
               </p>
             </div>
-            {renderFeedbackNarrative(feedback.narrative)}
+            <FeedbackNarrative text={feedback.narrative} />
             <Button variant="outline" size="sm" onClick={handleRetry}>
               Try Again
             </Button>
@@ -305,83 +240,10 @@ export default function PracticeCasePage() {
       {/* Diagnosis input */}
       {!submitted && (
         <>
-          <div className="relative">
-            <div className="flex gap-2">
-              <Input
-                value={inputValue}
-                onChange={(e) => handleInputChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "ArrowDown" && showSuggestions) {
-                    e.preventDefault();
-                    setHighlightedIndex((prev) =>
-                      prev < suggestions.length - 1 ? prev + 1 : 0
-                    );
-                  } else if (e.key === "ArrowUp" && showSuggestions) {
-                    e.preventDefault();
-                    setHighlightedIndex((prev) =>
-                      prev > 0 ? prev - 1 : suggestions.length - 1
-                    );
-                  } else if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (highlightedIndex >= 0 && showSuggestions) {
-                      addDiagnosisWithName(suggestions[highlightedIndex].term);
-                    } else {
-                      addDiagnosis();
-                    }
-                  } else if (e.key === "Escape") {
-                    setShowSuggestions(false);
-                  }
-                }}
-                onFocus={() => {
-                  if (suggestions.length > 0) setShowSuggestions(true);
-                }}
-                onBlur={() => {
-                  setTimeout(() => setShowSuggestions(false), 150);
-                }}
-                placeholder="Add a diagnosis..."
-                className="h-11 text-base"
-                autoComplete="off"
-              />
-              <Button
-                onClick={addDiagnosis}
-                disabled={!inputValue.trim()}
-                size="lg"
-                className="h-11 shrink-0"
-              >
-                <Plus className="h-4 w-4" />
-                Add
-              </Button>
-            </div>
-
-            {showSuggestions && (
-              <div
-                ref={suggestionsRef}
-                className="absolute left-0 right-12 top-full z-10 mt-1 rounded-md border bg-popover shadow-md"
-              >
-                {suggestions.map((s, i) => (
-                  <button
-                    key={s.term}
-                    type="button"
-                    className={cn(
-                      "w-full px-3 py-2 text-left text-sm hover:bg-accent",
-                      i === highlightedIndex && "bg-accent"
-                    )}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      addDiagnosisWithName(s.term);
-                    }}
-                  >
-                    {s.term}
-                    {s.matchedAbbrev && (
-                      <span className="ml-1.5 text-xs text-muted-foreground">
-                        ({s.matchedAbbrev})
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <DiagnosisInput
+            onAdd={addDiagnosis}
+            existingDiagnoses={diagnoses.map((d) => d.diagnosis)}
+          />
 
           {/* Guidance */}
           <div className="space-y-1">
@@ -402,7 +264,7 @@ export default function PracticeCasePage() {
       {diagnoses.length > 0 && (
         <div className="space-y-2">
           {diagnoses.map((entry, index) => (
-            <PracticeDiagnosisRow
+            <DiagnosisRow
               key={`${entry.diagnosis}-${entry.sort_order}`}
               entry={entry}
               index={index}
@@ -449,130 +311,5 @@ export default function PracticeCasePage() {
         </Button>
       )}
     </div>
-  );
-}
-
-function renderFeedbackNarrative(text: string) {
-  const lines = text.split("\n").filter((l) => l.trim());
-  const isBulletFormat = lines.some((l) => l.trim().startsWith("- "));
-
-  if (isBulletFormat) {
-    const bullets = lines.filter((l) => l.trim().startsWith("- "));
-    return (
-      <ul className="space-y-1.5">
-        {bullets.map((bullet, i) => {
-          const content = bullet.replace(/^-\s*/, "");
-          const prefixMatch = content.match(
-            /^(Strength|Consider|Can't-miss):\s*/i
-          );
-          if (prefixMatch) {
-            return (
-              <li key={i} className="text-sm leading-relaxed">
-                <span className="font-semibold">{prefixMatch[0]}</span>
-                {content.slice(prefixMatch[0].length)}
-              </li>
-            );
-          }
-          return (
-            <li key={i} className="text-sm leading-relaxed">
-              {content}
-            </li>
-          );
-        })}
-      </ul>
-    );
-  }
-
-  return <p className="text-sm leading-relaxed">{text}</p>;
-}
-
-function PracticeDiagnosisRow({
-  entry,
-  index,
-  total,
-  disabled,
-  onRemove,
-  onMoveUp,
-  onMoveDown,
-  onUpdateConfidence,
-  onUpdateReasoning,
-}: {
-  entry: DiagnosisEntry;
-  index: number;
-  total: number;
-  disabled: boolean;
-  onRemove: (i: number) => void;
-  onMoveUp: (i: number) => void;
-  onMoveDown: (i: number) => void;
-  onUpdateConfidence: (i: number, c: number) => void;
-  onUpdateReasoning: (i: number, r: string) => void;
-}) {
-  const [showReasoning, setShowReasoning] = useState(Boolean(entry.reasoning));
-
-  return (
-    <Card className="py-3">
-      <CardContent className="px-4 py-0 space-y-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="text-xs text-muted-foreground font-medium shrink-0">
-              {index + 1}.
-            </span>
-            <span className="text-sm font-medium truncate">
-              {entry.diagnosis}
-            </span>
-          </div>
-          {!disabled && (
-            <div className="flex items-center gap-0.5 shrink-0">
-              <button
-                onClick={() => onMoveUp(index)}
-                disabled={index === 0}
-                className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
-              >
-                <ChevronUp className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => onMoveDown(index)}
-                disabled={index === total - 1}
-                className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
-              >
-                <ChevronDown className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => onRemove(index)}
-                className="p-1 text-muted-foreground hover:text-destructive"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-        {!disabled && (
-          <ConfidenceRating
-            value={entry.confidence}
-            onChange={(val) => onUpdateConfidence(index, val)}
-          />
-        )}
-        {!disabled && !showReasoning ? (
-          <button
-            type="button"
-            onClick={() => setShowReasoning(true)}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Why this diagnosis?
-          </button>
-        ) : (
-          showReasoning &&
-          !disabled && (
-            <Textarea
-              value={entry.reasoning || ""}
-              onChange={(e) => onUpdateReasoning(index, e.target.value)}
-              placeholder="What about this patient makes you consider this? (optional)"
-              className="min-h-16 text-xs"
-              rows={2}
-            />
-          )
-        )}
-      </CardContent>
-    </Card>
   );
 }

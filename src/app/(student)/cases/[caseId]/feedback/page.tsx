@@ -9,6 +9,7 @@ import { VINDICATE_CATEGORIES } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { FeedbackNarrative } from "@/components/feedback-narrative";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -33,43 +34,6 @@ function DiagnosisLink({ term }: { term: string }) {
       {term}
     </a>
   );
-}
-
-function renderAiNarrative(text: string) {
-  // Detect bullet format: lines starting with "- "
-  const lines = text.split("\n").filter((l) => l.trim());
-  const isBulletFormat = lines.some((l) => l.trim().startsWith("- "));
-
-  if (isBulletFormat) {
-    const bullets = lines.filter((l) => l.trim().startsWith("- "));
-    return (
-      <ul className="space-y-2">
-        {bullets.map((bullet, i) => {
-          const content = bullet.replace(/^-\s*/, "");
-          // Bold the category prefix (e.g., "Strength:", "Consider:", "Can't-miss:")
-          const prefixMatch = content.match(
-            /^(Strength|Consider|Can't-miss|Can't-miss):\s*/i
-          );
-          if (prefixMatch) {
-            return (
-              <li key={i} className="text-sm leading-relaxed">
-                <span className="font-semibold">{prefixMatch[0]}</span>
-                {content.slice(prefixMatch[0].length)}
-              </li>
-            );
-          }
-          return (
-            <li key={i} className="text-sm leading-relaxed">
-              {content}
-            </li>
-          );
-        })}
-      </ul>
-    );
-  }
-
-  // Fallback: prose format (backward compat)
-  return <p className="text-sm leading-relaxed">{text}</p>;
 }
 
 export default function FeedbackPage() {
@@ -214,7 +178,7 @@ export default function FeedbackPage() {
           {/* Phase 1: AI Narrative */}
           <Card className="border-primary/30 bg-accent/30">
             <CardContent className="p-4">
-              {renderAiNarrative(feedback.ai_narrative)}
+              <FeedbackNarrative text={feedback.ai_narrative} />
             </CardContent>
           </Card>
 
