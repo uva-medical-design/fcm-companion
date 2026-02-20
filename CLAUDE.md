@@ -18,9 +18,14 @@ FCM Companion is a mobile-first web app for UVA medical students to practice dif
 - `src/app/api/` — API routes (feedback, practice-feedback, submissions, notes, dashboard, osce)
 - `src/lib/feedback.ts` — Deterministic comparison + AI narrative generation
 - `src/data/practice-cases.ts` — 324 practice cases from AgentClinic (static JSON)
-- `src/data/diagnosis-lookup.ts` — 256 diagnoses with abbreviation matching
+- `src/data/clinical-vocabulary.json` — 666 diagnoses with abbreviations, body_system, vindicate_category
+- `src/data/diagnosis-lookup.ts` — Imports vocabulary JSON, exports `searchDiagnoses()` with scored matching
+- `src/components/diagnosis-input.tsx` — Shared autocomplete input (3-char threshold)
+- `src/components/diagnosis-row.tsx` — Shared diagnosis card (reorder, confidence, reasoning)
+- `src/components/confidence-rating.tsx` — 1-5 confidence circle picker
+- `src/components/feedback-narrative.tsx` — AI feedback renderer (bullet + prose formats)
 - `src/types/` — All TypeScript types
-- `scripts/` — Data processing scripts (process-agentclinic.ts, expand-diagnoses.ts)
+- `scripts/` — Data processing and generation scripts
 
 ## Key Patterns
 - User context via localStorage (`fcm-user` key), no auth
@@ -28,10 +33,13 @@ FCM Companion is a mobile-first web app for UVA medical students to practice dif
 - VINDICATE framework: V-I-N-D-I-C-A-T-E (9 categories, "I2" key for Iatrogenic)
 - Feedback: deterministic comparison first, then AI narrative (categorized bullets)
 - Practice cases stored in localStorage (no Supabase FK dependency)
+- Practice mode toggle: "Differential Only" (default) vs "Full Case" — persisted in localStorage (`practice-mode` key)
+- Topic voting: stored in `fcm_notes` with `[TOPIC VOTE]` prefix and `is_sent_to_instructor: true`
 - Responsive layout: mobile bottom nav + desktop sidebar (md breakpoint)
+- Student nav: Cases, Try a Case, Notes, Resources (OSCE hidden from nav, still accessible via `/osce`)
 
 ## Database Tables
-`fcm_users`, `fcm_cases`, `fcm_schedule`, `fcm_submissions`, `fcm_notes`, `fcm_settings`, `fcm_osce_responses`
+`fcm_users`, `fcm_cases`, `fcm_schedule`, `fcm_submissions`, `fcm_notes`, `fcm_settings`, `fcm_osce_responses`, `fcm_quiz_scores`
 
 ## Commands
 ```bash
@@ -39,12 +47,17 @@ npm run dev          # Start dev server
 npm run build        # Production build
 npm run data:process # Regenerate practice-cases.json from AgentClinic JSONL
 npm run data:diagnoses # Extract new diagnoses from practice cases
+npx tsx scripts/generate-vocabulary.ts  # Regenerate clinical-vocabulary.json (666 entries)
+npx tsx scripts/build-vocabulary.ts     # Claude API-powered vocabulary expansion
+npx tsx scripts/import-uva-cases.ts <dir> # Parse UVA case files → SQL INSERT statements
 ```
 
 ## Version History
 - **v1** (Feb 18): Full 3-part system — Student App, Faculty Dashboard, Admin Panel
 - **v2.1** (Feb 19 AM): Pedagogical upgrade — autocomplete delay, fuzzy matching, reasoning field, two-phase feedback
 - **v3** (Feb 19 PM): Clinical data integration (324 practice cases, 256 diagnoses), UX redesign (confidence rating, optional VINDICATE, bullet feedback, desktop sidebar, StatPearls links), Practice Library, Gamified Refresh Quiz
+- **v3.1** (Feb 19 late): Time-aware cases dashboard, Quick Refresh quiz, quiz score persistence
+- **v4** (Feb 20): Refocus on early M1 experience — autocomplete threshold 2→3 chars, hide OSCE nav, rename Practice→"Try a Case", hide OSCE data from practice, Random Case button, topic voting (feedback page + case page + dashboard aggregation), vocabulary expansion (268→666 entries with body_system/vindicate_category), practice dual-mode (Differential Only / Full Case), admin case creation UI, UVA case import script, shared component extraction (DiagnosisInput, DiagnosisRow, ConfidenceRating, FeedbackNarrative)
 
 ## Commit Style
 `type: description` (feat:, fix:, chore:, docs:)
