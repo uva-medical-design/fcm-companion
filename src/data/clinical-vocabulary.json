@@ -8,6 +8,14 @@
     "vindicate_category": "V"
   },
   {
+    "term": "Abruptio Placentae",
+    "abbreviations": [
+      "AP"
+    ],
+    "body_system": "OB/GYN",
+    "vindicate_category": "V"
+  },
+  {
     "term": "Abscess",
     "abbreviations": [],
     "body_system": "Infectious Disease",
@@ -35,6 +43,14 @@
     ],
     "body_system": "Musculoskeletal",
     "vindicate_category": "T"
+  },
+  {
+    "term": "Achondroplasia",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "C"
   },
   {
     "term": "ACL Tear",
@@ -91,11 +107,27 @@
     "vindicate_category": "V"
   },
   {
+    "term": "Acute Appendicitis",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "I"
+  },
+  {
     "term": "Acute Bronchitis",
     "abbreviations": [
       "bronchitis"
     ],
     "body_system": "Pulmonary",
+    "vindicate_category": "I"
+  },
+  {
+    "term": "Acute Cholangitis",
+    "abbreviations": [
+      "AC"
+    ],
+    "body_system": "Hepatobiliary",
     "vindicate_category": "I"
   },
   {
@@ -129,6 +161,14 @@
     "vindicate_category": "I"
   },
   {
+    "term": "Acute Ischemic Stroke",
+    "abbreviations": [
+      "AIS"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "V"
+  },
+  {
     "term": "Acute Kidney Injury",
     "abbreviations": [
       "AKI",
@@ -146,6 +186,14 @@
     "vindicate_category": "V"
   },
   {
+    "term": "Acute Liver Failure",
+    "abbreviations": [
+      "ALF"
+    ],
+    "body_system": "Hepatobiliary",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Acute Lymphoblastic Leukemia",
     "abbreviations": [
       "ALL"
@@ -154,12 +202,28 @@
     "vindicate_category": "N"
   },
   {
+    "term": "Acute Mesenteric Ischemia",
+    "abbreviations": [
+      "AMI"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "V"
+  },
+  {
     "term": "Acute Myeloid Leukemia",
     "abbreviations": [
       "AML"
     ],
     "body_system": "Hematologic/Oncologic",
     "vindicate_category": "N"
+  },
+  {
+    "term": "Acute Pancreatitis",
+    "abbreviations": [
+      "AP"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "I"
   },
   {
     "term": "Acute Pericarditis",
@@ -441,6 +505,14 @@
     "vindicate_category": "C"
   },
   {
+    "term": "Arteriovenous Malformation",
+    "abbreviations": [
+      "AVM"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "C"
+  },
+  {
     "term": "Asbestosis",
     "abbreviations": [],
     "body_system": "Pulmonary",
@@ -487,6 +559,14 @@
     "vindicate_category": "A"
   },
   {
+    "term": "Atelectasis",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Pulmonary",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Atopic Dermatitis",
     "abbreviations": [
       "eczema"
@@ -499,6 +579,14 @@
     "abbreviations": [
       "AFib",
       "AF"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "V"
+  },
+  {
+    "term": "Atrial Flutter",
+    "abbreviations": [
+      "AFL"
     ],
     "body_system": "Cardiovascular",
     "vindicate_category": "V"
@@ -567,6 +655,14 @@
     ],
     "body_system": "Hematologic/Oncologic",
     "vindicate_category": "E"
+  },
+  {
+    "term": "Bacterial Meningitis",
+    "abbreviations": [
+      "BM"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "I"
   },
   {
     "term": "Bacterial Vaginosis",
@@ -655,6 +751,14 @@
     "vindicate_category": "I2"
   },
   {
+    "term": "Biceps Tendon Rupture",
+    "abbreviations": [
+      "BTR"
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "T"
+  },
+  {
     "term": "Biliary Atresia",
     "abbreviations": [],
     "body_system": "Gastrointestinal",
@@ -737,6 +841,15 @@
     "vindicate_category": "I"
   },
   {
+    "term": "Bowel Obstruction",
+    "abbreviations": [
+      "BO",
+      "SBO"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Bowen's Disease",
     "abbreviations": [],
     "body_system": "Dermatologic",
@@ -747,6 +860,14 @@
     "abbreviations": [],
     "body_system": "Neurological",
     "vindicate_category": "I"
+  },
+  {
+    "term": "Brain Tumor",
+    "abbreviations": [
+      "BT"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "N"
   },
   {
     "term": "Brief Psychotic Disorder",
@@ -771,6 +892,14 @@
     "abbreviations": [],
     "body_system": "Neurological",
     "vindicate_category": "T"
+  },
+  {
+    "term": "Brucellosis",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
   },
   {
     "term": "Brugada Syndrome",
@@ -871,6 +1000,30 @@
     "vindicate_category": "V"
   },
   {
+    "term": "Cardiogenic Shock",
+    "abbreviations": [
+      "CS"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "V"
+  },
+  {
+    "term": "Cardiomyopathy",
+    "abbreviations": [
+      "CMP"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Carotid Artery Stenosis",
+    "abbreviations": [
+      "CAS"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "V"
+  },
+  {
     "term": "Carpal Tunnel Syndrome",
     "abbreviations": [
       "CTS"
@@ -909,6 +1062,14 @@
     "vindicate_category": "T"
   },
   {
+    "term": "Central Nervous System Lymphoma",
+    "abbreviations": [
+      "CNSL"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "N"
+  },
+  {
     "term": "Central Retinal Artery Occlusion",
     "abbreviations": [
       "CRAO"
@@ -933,6 +1094,14 @@
     "vindicate_category": "D"
   },
   {
+    "term": "Cerebral Palsy",
+    "abbreviations": [
+      "CP"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "C"
+  },
+  {
     "term": "Cerebral Venous Thrombosis",
     "abbreviations": [
       "CVT"
@@ -945,6 +1114,22 @@
     "abbreviations": [],
     "body_system": "OB/GYN",
     "vindicate_category": "N"
+  },
+  {
+    "term": "Cervical Radiculopathy",
+    "abbreviations": [
+      "CR"
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Cervicitis",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "OB/GYN",
+    "vindicate_category": "I"
   },
   {
     "term": "Chiari Malformation",
@@ -961,12 +1146,28 @@
     "vindicate_category": "I"
   },
   {
+    "term": "Chlamydia",
+    "abbreviations": [
+      "CT"
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
+  },
+  {
     "term": "Cholangiocarcinoma",
     "abbreviations": [
       "bile duct cancer"
     ],
     "body_system": "Gastrointestinal",
     "vindicate_category": "N"
+  },
+  {
+    "term": "Choledocholithiasis",
+    "abbreviations": [
+      "CDL"
+    ],
+    "body_system": "Hepatobiliary",
+    "vindicate_category": "D"
   },
   {
     "term": "Choledocholithiasis with Cholangitis",
@@ -995,6 +1196,14 @@
     "vindicate_category": "I"
   },
   {
+    "term": "Cholestasis",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Hepatobiliary",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Chorioamnionitis",
     "abbreviations": [],
     "body_system": "OB/GYN",
@@ -1013,6 +1222,14 @@
       "ME/CFS"
     ],
     "body_system": "General/Constitutional",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Chronic Heart Failure",
+    "abbreviations": [
+      "CHF"
+    ],
+    "body_system": "Cardiovascular",
     "vindicate_category": "D"
   },
   {
@@ -1075,6 +1292,14 @@
     "vindicate_category": "V"
   },
   {
+    "term": "Clostridium Difficile Colitis",
+    "abbreviations": [
+      "C diff"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "I"
+  },
+  {
     "term": "Cluster Headache",
     "abbreviations": [],
     "body_system": "Neurological",
@@ -1110,6 +1335,14 @@
     "vindicate_category": "A"
   },
   {
+    "term": "Colon Cancer",
+    "abbreviations": [
+      "CRC"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "N"
+  },
+  {
     "term": "Colorectal Cancer",
     "abbreviations": [
       "colon cancer",
@@ -1119,10 +1352,35 @@
     "vindicate_category": "N"
   },
   {
+    "term": "Colorectal Carcinoma",
+    "abbreviations": [
+      "CRC"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "N"
+  },
+  {
+    "term": "Community-Acquired Pneumonia",
+    "abbreviations": [
+      "CAP"
+    ],
+    "body_system": "Pulmonary",
+    "vindicate_category": "I"
+  },
+  {
     "term": "Compartment Syndrome",
     "abbreviations": [],
     "body_system": "Musculoskeletal",
     "vindicate_category": "T"
+  },
+  {
+    "term": "Complete Heart Block",
+    "abbreviations": [
+      "CHB",
+      "3AVB"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "D"
   },
   {
     "term": "Complex Partial Seizure",
@@ -1148,6 +1406,14 @@
     ],
     "body_system": "Neurological",
     "vindicate_category": "T"
+  },
+  {
+    "term": "Congenital Adrenal Hyperplasia",
+    "abbreviations": [
+      "CAH"
+    ],
+    "body_system": "Endocrine/Metabolic",
+    "vindicate_category": "C"
   },
   {
     "term": "Conjunctivitis",
@@ -1246,6 +1512,14 @@
     "vindicate_category": "N"
   },
   {
+    "term": "Crohn Disease",
+    "abbreviations": [
+      "CD"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "A"
+  },
+  {
     "term": "Crohn's Disease",
     "abbreviations": [
       "Crohn's"
@@ -1286,6 +1560,14 @@
     "vindicate_category": "I"
   },
   {
+    "term": "Cushing Disease",
+    "abbreviations": [
+      "CD"
+    ],
+    "body_system": "Endocrine/Metabolic",
+    "vindicate_category": "N"
+  },
+  {
     "term": "Cushing Syndrome",
     "abbreviations": [
       "Cushing's",
@@ -1301,6 +1583,14 @@
     "vindicate_category": "I2"
   },
   {
+    "term": "Cystic Fibrosis",
+    "abbreviations": [
+      "CF"
+    ],
+    "body_system": "Pulmonary",
+    "vindicate_category": "C"
+  },
+  {
     "term": "Cystitis",
     "abbreviations": [],
     "body_system": "Renal/GU",
@@ -1308,6 +1598,14 @@
   },
   {
     "term": "Cytomegalovirus",
+    "abbreviations": [
+      "CMV"
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
+  },
+  {
+    "term": "Cytomegalovirus Infection",
     "abbreviations": [
       "CMV"
     ],
@@ -1337,6 +1635,15 @@
     "vindicate_category": "V"
   },
   {
+    "term": "Degenerative Joint Disease",
+    "abbreviations": [
+      "DJD",
+      "OA"
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Dehydration",
     "abbreviations": [],
     "body_system": "General/Constitutional",
@@ -1362,6 +1669,14 @@
     "term": "Delusional Disorder",
     "abbreviations": [],
     "body_system": "Psychiatric",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Dementia",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Neurological",
     "vindicate_category": "D"
   },
   {
@@ -1398,6 +1713,24 @@
       "DI"
     ],
     "body_system": "Renal/GU",
+    "vindicate_category": "E"
+  },
+  {
+    "term": "Diabetes Mellitus Type 1",
+    "abbreviations": [
+      "T1DM",
+      "T1D"
+    ],
+    "body_system": "Endocrine/Metabolic",
+    "vindicate_category": "A"
+  },
+  {
+    "term": "Diabetes Mellitus Type 2",
+    "abbreviations": [
+      "T2DM",
+      "T2D"
+    ],
+    "body_system": "Endocrine/Metabolic",
     "vindicate_category": "E"
   },
   {
@@ -1453,6 +1786,14 @@
     "vindicate_category": "D"
   },
   {
+    "term": "Diphtheria",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
+  },
+  {
     "term": "Disc Herniation",
     "abbreviations": [
       "herniated disc"
@@ -1477,10 +1818,26 @@
     "vindicate_category": "V"
   },
   {
+    "term": "Diverticular Disease",
+    "abbreviations": [
+      "DD"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Diverticulitis",
     "abbreviations": [],
     "body_system": "Gastrointestinal",
     "vindicate_category": "I"
+  },
+  {
+    "term": "Diverticulosis",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "D"
   },
   {
     "term": "Dressler Syndrome",
@@ -1516,6 +1873,22 @@
     "vindicate_category": "I2"
   },
   {
+    "term": "Drug-Induced Liver Injury",
+    "abbreviations": [
+      "DILI"
+    ],
+    "body_system": "Hepatobiliary",
+    "vindicate_category": "I2"
+  },
+  {
+    "term": "Duchenne Muscular Dystrophy",
+    "abbreviations": [
+      "DMD"
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "C"
+  },
+  {
     "term": "Dumping Syndrome",
     "abbreviations": [],
     "body_system": "Gastrointestinal",
@@ -1534,10 +1907,34 @@
     "vindicate_category": "D"
   },
   {
+    "term": "Dysmenorrhea",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "OB/GYN",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Dystonia",
     "abbreviations": [],
     "body_system": "Neurological",
     "vindicate_category": "D"
+  },
+  {
+    "term": "Ebola Virus Disease",
+    "abbreviations": [
+      "EVD"
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
+  },
+  {
+    "term": "Ebstein Anomaly",
+    "abbreviations": [
+      "EA"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "C"
   },
   {
     "term": "Eclampsia",
@@ -1630,6 +2027,22 @@
     "vindicate_category": "A"
   },
   {
+    "term": "Eosinophilic Pneumonia",
+    "abbreviations": [
+      "EP"
+    ],
+    "body_system": "Pulmonary",
+    "vindicate_category": "A"
+  },
+  {
+    "term": "Epicondylitis",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Epididymitis",
     "abbreviations": [],
     "body_system": "Renal/GU",
@@ -1713,6 +2126,15 @@
     "vindicate_category": "N"
   },
   {
+    "term": "Esophageal Rupture",
+    "abbreviations": [
+      "ER",
+      "Boerhaave"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "T"
+  },
+  {
     "term": "Esophageal Varices",
     "abbreviations": [],
     "body_system": "Gastrointestinal",
@@ -1789,6 +2211,14 @@
     "vindicate_category": "I"
   },
   {
+    "term": "Febrile Seizure",
+    "abbreviations": [
+      "FS"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "I"
+  },
+  {
     "term": "Fever of Unknown Origin",
     "abbreviations": [
       "FUO"
@@ -1802,6 +2232,14 @@
       "fibro"
     ],
     "body_system": "Musculoskeletal",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "First Degree Atrioventricular Block",
+    "abbreviations": [
+      "1AVB"
+    ],
+    "body_system": "Cardiovascular",
     "vindicate_category": "D"
   },
   {
@@ -1845,6 +2283,14 @@
     "vindicate_category": "T"
   },
   {
+    "term": "Fracture",
+    "abbreviations": [
+      "Fx"
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "T"
+  },
+  {
     "term": "Frontotemporal Dementia",
     "abbreviations": [
       "FTD"
@@ -1861,12 +2307,36 @@
     "vindicate_category": "I"
   },
   {
+    "term": "Functional Dyspepsia",
+    "abbreviations": [
+      "FD"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "D"
+  },
+  {
     "term": "G6PD Deficiency",
     "abbreviations": [
       "glucose-6-phosphate dehydrogenase deficiency"
     ],
     "body_system": "Hematologic/Oncologic",
     "vindicate_category": "C"
+  },
+  {
+    "term": "Gallbladder Cancer",
+    "abbreviations": [
+      "GBC"
+    ],
+    "body_system": "Hepatobiliary",
+    "vindicate_category": "N"
+  },
+  {
+    "term": "Gallstone Pancreatitis",
+    "abbreviations": [
+      "GSP"
+    ],
+    "body_system": "Hepatobiliary",
+    "vindicate_category": "D"
   },
   {
     "term": "Ganglion Cyst",
@@ -1899,9 +2369,25 @@
     "vindicate_category": "N"
   },
   {
+    "term": "Gastric Ulcer",
+    "abbreviations": [
+      "GU"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Gastritis",
     "abbreviations": [
       "stomach inflammation"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "I"
+  },
+  {
+    "term": "Gastroenteritis",
+    "abbreviations": [
+      "GE"
     ],
     "body_system": "Gastrointestinal",
     "vindicate_category": "I"
@@ -1923,6 +2409,24 @@
     "vindicate_category": "D"
   },
   {
+    "term": "Gastrointestinal Bleed",
+    "abbreviations": [
+      "GIB",
+      "UGIB",
+      "LGIB"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "V"
+  },
+  {
+    "term": "Gastrointestinal Stromal Tumor",
+    "abbreviations": [
+      "GIST"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "N"
+  },
+  {
     "term": "Gastroparesis",
     "abbreviations": [],
     "body_system": "Gastrointestinal",
@@ -1937,12 +2441,28 @@
     "vindicate_category": "D"
   },
   {
+    "term": "Generalized Tonic-Clonic Seizure",
+    "abbreviations": [
+      "GTC"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Gestational Diabetes",
     "abbreviations": [
       "GDM"
     ],
     "body_system": "OB/GYN",
     "vindicate_category": "E"
+  },
+  {
+    "term": "Gestational Hypertension",
+    "abbreviations": [
+      "GH"
+    ],
+    "body_system": "OB/GYN",
+    "vindicate_category": "V"
   },
   {
     "term": "GI Bleed",
@@ -1974,6 +2494,14 @@
     "vindicate_category": "N"
   },
   {
+    "term": "Glioblastoma Multiforme",
+    "abbreviations": [
+      "GBM"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "N"
+  },
+  {
     "term": "Glomerulonephritis",
     "abbreviations": [
       "GN"
@@ -1986,6 +2514,14 @@
     "abbreviations": [],
     "body_system": "Neurological",
     "vindicate_category": "D"
+  },
+  {
+    "term": "Gonorrhea",
+    "abbreviations": [
+      "GC"
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
   },
   {
     "term": "Goodpasture Syndrome",
@@ -2054,12 +2590,36 @@
     "vindicate_category": "V"
   },
   {
+    "term": "Heart Failure with Preserved Ejection Fraction",
+    "abbreviations": [
+      "HFpEF"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Heart Failure with Reduced Ejection Fraction",
+    "abbreviations": [
+      "HFrEF"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Heat Stroke",
     "abbreviations": [
       "heat exhaustion"
     ],
     "body_system": "General/Constitutional",
     "vindicate_category": "T"
+  },
+  {
+    "term": "Helicobacter Pylori Infection",
+    "abbreviations": [
+      "H. pylori"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "I"
   },
   {
     "term": "HELLP Syndrome",
@@ -2158,9 +2718,34 @@
     "vindicate_category": "E"
   },
   {
+    "term": "Hepatic Steatosis",
+    "abbreviations": [
+      "HS",
+      "NAFLD"
+    ],
+    "body_system": "Hepatobiliary",
+    "vindicate_category": "E"
+  },
+  {
     "term": "Hepatitis",
     "abbreviations": [],
     "body_system": "Gastrointestinal",
+    "vindicate_category": "I"
+  },
+  {
+    "term": "Hepatitis A",
+    "abbreviations": [
+      "HAV"
+    ],
+    "body_system": "Hepatobiliary",
+    "vindicate_category": "I"
+  },
+  {
+    "term": "Hepatitis C",
+    "abbreviations": [
+      "HCV"
+    ],
+    "body_system": "Hepatobiliary",
     "vindicate_category": "I"
   },
   {
@@ -2173,12 +2758,28 @@
     "vindicate_category": "N"
   },
   {
+    "term": "Hepatorenal Syndrome",
+    "abbreviations": [
+      "HRS"
+    ],
+    "body_system": "Hepatobiliary",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Hereditary Spherocytosis",
     "abbreviations": [
       "HS"
     ],
     "body_system": "Hematologic/Oncologic",
     "vindicate_category": "C"
+  },
+  {
+    "term": "Hernia",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "D"
   },
   {
     "term": "Herpes Simplex",
@@ -2199,6 +2800,14 @@
     "vindicate_category": "I"
   },
   {
+    "term": "Herpes Simplex Virus Infection",
+    "abbreviations": [
+      "HSV"
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
+  },
+  {
     "term": "Herpes Zoster",
     "abbreviations": [
       "shingles",
@@ -2214,6 +2823,14 @@
     ],
     "body_system": "Musculoskeletal",
     "vindicate_category": "T"
+  },
+  {
+    "term": "Hirschsprung Disease",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "C"
   },
   {
     "term": "Histoplasmosis",
@@ -2242,6 +2859,14 @@
     "vindicate_category": "N"
   },
   {
+    "term": "Horseshoe Kidney",
+    "abbreviations": [
+      "HSK"
+    ],
+    "body_system": "Renal/GU",
+    "vindicate_category": "C"
+  },
+  {
     "term": "Hospital-Acquired Pneumonia",
     "abbreviations": [
       "HAP"
@@ -2262,6 +2887,14 @@
     "abbreviations": [],
     "body_system": "Renal/GU",
     "vindicate_category": "C"
+  },
+  {
+    "term": "Hydrocephalus",
+    "abbreviations": [
+      "HC"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "D"
   },
   {
     "term": "Hydronephrosis",
@@ -2287,11 +2920,27 @@
     "vindicate_category": "E"
   },
   {
+    "term": "Hypercortisolism",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Endocrine/Metabolic",
+    "vindicate_category": "N"
+  },
+  {
     "term": "Hyperemesis Gravidarum",
     "abbreviations": [
       "HG"
     ],
     "body_system": "OB/GYN",
+    "vindicate_category": "E"
+  },
+  {
+    "term": "Hyperglycemia",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Endocrine/Metabolic",
     "vindicate_category": "E"
   },
   {
@@ -2303,11 +2952,35 @@
     "vindicate_category": "E"
   },
   {
+    "term": "Hypermagnesemia",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Endocrine/Metabolic",
+    "vindicate_category": "E"
+  },
+  {
     "term": "Hypernatremia",
     "abbreviations": [
       "high sodium"
     ],
     "body_system": "Renal/GU",
+    "vindicate_category": "E"
+  },
+  {
+    "term": "Hyperparathyroidism",
+    "abbreviations": [
+      "HPTH"
+    ],
+    "body_system": "Endocrine/Metabolic",
+    "vindicate_category": "N"
+  },
+  {
+    "term": "Hyperphosphatemia",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Endocrine/Metabolic",
     "vindicate_category": "E"
   },
   {
@@ -2331,6 +3004,14 @@
     "term": "Hypertensive Emergency",
     "abbreviations": [
       "HTN emergency"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "V"
+  },
+  {
+    "term": "Hypertensive Heart Disease",
+    "abbreviations": [
+      "HHD"
     ],
     "body_system": "Cardiovascular",
     "vindicate_category": "V"
@@ -2381,6 +3062,14 @@
     "vindicate_category": "E"
   },
   {
+    "term": "Hypomagnesemia",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Endocrine/Metabolic",
+    "vindicate_category": "E"
+  },
+  {
     "term": "Hyponatremia",
     "abbreviations": [
       "low sodium"
@@ -2393,6 +3082,14 @@
     "abbreviations": [],
     "body_system": "Endocrine/Metabolic",
     "vindicate_category": "E"
+  },
+  {
+    "term": "Hypopituitarism",
+    "abbreviations": [
+      "HP"
+    ],
+    "body_system": "Endocrine/Metabolic",
+    "vindicate_category": "D"
   },
   {
     "term": "Hypothermia",
@@ -2440,6 +3137,15 @@
     "vindicate_category": "A"
   },
   {
+    "term": "Iliotibial Band Syndrome",
+    "abbreviations": [
+      "ITBS",
+      "ITB"
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Immune Thrombocytopenic Purpura",
     "abbreviations": [
       "ITP"
@@ -2480,6 +3186,22 @@
     ],
     "body_system": "Infectious Disease",
     "vindicate_category": "I"
+  },
+  {
+    "term": "Inguinal Hernia",
+    "abbreviations": [
+      "IH"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Insulinoma",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Endocrine/Metabolic",
+    "vindicate_category": "N"
   },
   {
     "term": "Interstitial Cystitis",
@@ -2606,10 +3328,35 @@
     "vindicate_category": "D"
   },
   {
+    "term": "Kidney Stone",
+    "abbreviations": [
+      "KS",
+      "Nephrolithiasis"
+    ],
+    "body_system": "Renal/GU",
+    "vindicate_category": "E"
+  },
+  {
     "term": "Korsakoff Syndrome",
     "abbreviations": [],
     "body_system": "Neurological",
     "vindicate_category": "E"
+  },
+  {
+    "term": "Lactic Acidosis",
+    "abbreviations": [
+      "LA"
+    ],
+    "body_system": "Endocrine/Metabolic",
+    "vindicate_category": "E"
+  },
+  {
+    "term": "Lambert-Eaton Myasthenic Syndrome",
+    "abbreviations": [
+      "LEMS"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "A"
   },
   {
     "term": "Lambert-Eaton Syndrome",
@@ -2618,6 +3365,14 @@
     ],
     "body_system": "Neurological",
     "vindicate_category": "N"
+  },
+  {
+    "term": "Large Bowel Obstruction",
+    "abbreviations": [
+      "LBO"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "D"
   },
   {
     "term": "Laryngeal Candidiasis",
@@ -2648,12 +3403,28 @@
     "vindicate_category": "I2"
   },
   {
+    "term": "Left Bundle Branch Block",
+    "abbreviations": [
+      "LBBB"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Legg-Calve-Perthes Disease",
     "abbreviations": [
       "Perthes"
     ],
     "body_system": "Musculoskeletal",
     "vindicate_category": "V"
+  },
+  {
+    "term": "Leiomyoma",
+    "abbreviations": [
+      "Fibroid"
+    ],
+    "body_system": "OB/GYN",
+    "vindicate_category": "N"
   },
   {
     "term": "Leptospirosis",
@@ -2743,6 +3514,22 @@
     "vindicate_category": "D"
   },
   {
+    "term": "Lumbar Radiculopathy",
+    "abbreviations": [
+      "LR"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Lumbosacral Strain",
+    "abbreviations": [
+      "LSS"
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "T"
+  },
+  {
     "term": "Lung Abscess",
     "abbreviations": [],
     "body_system": "Pulmonary",
@@ -2823,6 +3610,14 @@
     "vindicate_category": "T"
   },
   {
+    "term": "Mastitis",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "OB/GYN",
+    "vindicate_category": "I"
+  },
+  {
     "term": "Measles",
     "abbreviations": [
       "rubeola"
@@ -2888,10 +3683,34 @@
     "vindicate_category": "I"
   },
   {
+    "term": "Meniscal Tear",
+    "abbreviations": [
+      "MT"
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "T"
+  },
+  {
     "term": "Meniscus Tear",
     "abbreviations": [],
     "body_system": "Musculoskeletal",
     "vindicate_category": "T"
+  },
+  {
+    "term": "Menorrhagia",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "OB/GYN",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Mesenteric Adenitis",
+    "abbreviations": [
+      "MA"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "I"
   },
   {
     "term": "Mesenteric Ischemia",
@@ -2908,6 +3727,14 @@
     "vindicate_category": "N"
   },
   {
+    "term": "Metabolic Acidosis",
+    "abbreviations": [
+      "MetAcid"
+    ],
+    "body_system": "Endocrine/Metabolic",
+    "vindicate_category": "E"
+  },
+  {
     "term": "Metabolic Syndrome",
     "abbreviations": [
       "syndrome X"
@@ -2920,6 +3747,14 @@
     "abbreviations": [],
     "body_system": "Toxicology",
     "vindicate_category": "I2"
+  },
+  {
+    "term": "Microscopic Colitis",
+    "abbreviations": [
+      "MC"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "A"
   },
   {
     "term": "Microscopic Polyangiitis",
@@ -3008,6 +3843,14 @@
     "vindicate_category": "I"
   },
   {
+    "term": "MRSA Infection",
+    "abbreviations": [
+      "MRSA"
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
+  },
+  {
     "term": "Mucormycosis",
     "abbreviations": [
       "zygomycosis"
@@ -3054,6 +3897,14 @@
     "abbreviations": [],
     "body_system": "Infectious Disease",
     "vindicate_category": "I"
+  },
+  {
+    "term": "Muscle Strain",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "T"
   },
   {
     "term": "Musculoskeletal Pain",
@@ -3104,6 +3955,14 @@
     "abbreviations": [],
     "body_system": "Cardiovascular",
     "vindicate_category": "I"
+  },
+  {
+    "term": "Myopathy",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "D"
   },
   {
     "term": "Narcolepsy",
@@ -3185,12 +4044,36 @@
     "vindicate_category": "E"
   },
   {
+    "term": "Nonalcoholic Steatohepatitis",
+    "abbreviations": [
+      "NASH"
+    ],
+    "body_system": "Hepatobiliary",
+    "vindicate_category": "E"
+  },
+  {
+    "term": "Nonischemic Cardiomyopathy",
+    "abbreviations": [
+      "NICM"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Normal Pressure Hydrocephalus",
     "abbreviations": [
       "NPH"
     ],
     "body_system": "Neurological",
     "vindicate_category": "D"
+  },
+  {
+    "term": "Norovirus Gastroenteritis",
+    "abbreviations": [
+      "NV"
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
   },
   {
     "term": "Obsessive-Compulsive Disorder",
@@ -3369,6 +4252,14 @@
     "vindicate_category": "V"
   },
   {
+    "term": "Overactive Bladder",
+    "abbreviations": [
+      "OAB"
+    ],
+    "body_system": "Renal/GU",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Paget Disease of Bone",
     "abbreviations": [],
     "body_system": "Musculoskeletal",
@@ -3380,6 +4271,14 @@
       "pancreatic cancer"
     ],
     "body_system": "Gastrointestinal",
+    "vindicate_category": "N"
+  },
+  {
+    "term": "Pancreatic Cancer",
+    "abbreviations": [
+      "PaCa"
+    ],
+    "body_system": "Hepatobiliary",
     "vindicate_category": "N"
   },
   {
@@ -3432,9 +4331,25 @@
     "vindicate_category": "V"
   },
   {
+    "term": "Patellofemoral Pain Syndrome",
+    "abbreviations": [
+      "PFPS"
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Patent Ductus Arteriosus",
     "abbreviations": [
       "PDA"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "C"
+  },
+  {
+    "term": "Patent Foramen Ovale",
+    "abbreviations": [
+      "PFO"
     ],
     "body_system": "Cardiovascular",
     "vindicate_category": "C"
@@ -3588,6 +4503,14 @@
     "vindicate_category": "V"
   },
   {
+    "term": "Plague",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
+  },
+  {
     "term": "Plantar Fasciitis",
     "abbreviations": [],
     "body_system": "Musculoskeletal",
@@ -3600,6 +4523,22 @@
     ],
     "body_system": "Pulmonary",
     "vindicate_category": "V"
+  },
+  {
+    "term": "Pleuritis",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Pulmonary",
+    "vindicate_category": "A"
+  },
+  {
+    "term": "Pneumoconiosis",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Pulmonary",
+    "vindicate_category": "D"
   },
   {
     "term": "Pneumocystis Pneumonia",
@@ -3707,6 +4646,14 @@
     "vindicate_category": "V"
   },
   {
+    "term": "Postpartum Depression",
+    "abbreviations": [
+      "PPD"
+    ],
+    "body_system": "OB/GYN",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Postpartum Hemorrhage",
     "abbreviations": [
       "PPH"
@@ -3721,6 +4668,22 @@
     ],
     "body_system": "OB/GYN",
     "vindicate_category": "V"
+  },
+  {
+    "term": "Premature Rupture of Membranes",
+    "abbreviations": [
+      "PROM"
+    ],
+    "body_system": "OB/GYN",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Premenstrual Syndrome",
+    "abbreviations": [
+      "PMS"
+    ],
+    "body_system": "OB/GYN",
+    "vindicate_category": "E"
   },
   {
     "term": "Preseptal Cellulitis",
@@ -3756,12 +4719,28 @@
     "vindicate_category": "E"
   },
   {
+    "term": "Primary Hypertension",
+    "abbreviations": [
+      "HTN"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "V"
+  },
+  {
     "term": "Primary Sclerosing Cholangitis",
     "abbreviations": [
       "PSC"
     ],
     "body_system": "Gastrointestinal",
     "vindicate_category": "A"
+  },
+  {
+    "term": "Primary Spontaneous Pneumothorax",
+    "abbreviations": [
+      "PSP"
+    ],
+    "body_system": "Pulmonary",
+    "vindicate_category": "C"
   },
   {
     "term": "Progressive Multifocal Leukoencephalopathy",
@@ -3829,6 +4808,14 @@
     "vindicate_category": "A"
   },
   {
+    "term": "Pulmonary Arterial Hypertension",
+    "abbreviations": [
+      "PAH"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "V"
+  },
+  {
     "term": "Pulmonary Contusion",
     "abbreviations": [],
     "body_system": "Pulmonary",
@@ -3894,6 +4881,22 @@
     "vindicate_category": "V"
   },
   {
+    "term": "Rabies",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
+  },
+  {
+    "term": "Rapidly Progressive Glomerulonephritis",
+    "abbreviations": [
+      "RPGN"
+    ],
+    "body_system": "Renal/GU",
+    "vindicate_category": "A"
+  },
+  {
     "term": "Raynaud Phenomenon",
     "abbreviations": [
       "Raynaud's"
@@ -3908,6 +4911,14 @@
     ],
     "body_system": "Rheumatologic",
     "vindicate_category": "A"
+  },
+  {
+    "term": "Rectal Cancer",
+    "abbreviations": [
+      "RCA"
+    ],
+    "body_system": "Gastrointestinal",
+    "vindicate_category": "N"
   },
   {
     "term": "Refeeding Syndrome",
@@ -3939,6 +4950,15 @@
     "vindicate_category": "N"
   },
   {
+    "term": "Renal Failure",
+    "abbreviations": [
+      "RF",
+      "ARF"
+    ],
+    "body_system": "Renal/GU",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Renal Tubular Acidosis",
     "abbreviations": [
       "RTA"
@@ -3966,6 +4986,22 @@
     "abbreviations": [],
     "body_system": "Pulmonary",
     "vindicate_category": "V"
+  },
+  {
+    "term": "Respiratory Syncytial Virus Infection",
+    "abbreviations": [
+      "RSV"
+    ],
+    "body_system": "Pulmonary",
+    "vindicate_category": "I"
+  },
+  {
+    "term": "Restless Leg Syndrome",
+    "abbreviations": [
+      "RLS"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "D"
   },
   {
     "term": "Restless Legs Syndrome",
@@ -4046,6 +5082,22 @@
     "vindicate_category": "T"
   },
   {
+    "term": "Right Bundle Branch Block",
+    "abbreviations": [
+      "RBBB"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Right Heart Failure",
+    "abbreviations": [
+      "RHF"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Rocky Mountain Spotted Fever",
     "abbreviations": [
       "RMSF"
@@ -4088,6 +5140,14 @@
     "abbreviations": [],
     "body_system": "OB/GYN",
     "vindicate_category": "V"
+  },
+  {
+    "term": "Sacroiliitis",
+    "abbreviations": [
+      "SI"
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "A"
   },
   {
     "term": "Salivary Gland Stone",
@@ -4136,6 +5196,14 @@
     "vindicate_category": "D"
   },
   {
+    "term": "Sciatica",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Seborrheic Dermatitis",
     "abbreviations": [],
     "body_system": "Dermatologic",
@@ -4147,6 +5215,23 @@
       "SK"
     ],
     "body_system": "Dermatologic",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Second Degree Atrioventricular Block Mobitz Type I",
+    "abbreviations": [
+      "2AVB-I",
+      "Wenckebach"
+    ],
+    "body_system": "Cardiovascular",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Second Degree Atrioventricular Block Mobitz Type II",
+    "abbreviations": [
+      "2AVB-II"
+    ],
+    "body_system": "Cardiovascular",
     "vindicate_category": "D"
   },
   {
@@ -4172,6 +5257,14 @@
     "vindicate_category": "I"
   },
   {
+    "term": "Septic Shock",
+    "abbreviations": [
+      "SS"
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
+  },
+  {
     "term": "Serotonin Syndrome",
     "abbreviations": [],
     "body_system": "Neurological",
@@ -4184,6 +5277,22 @@
     ],
     "body_system": "Infectious Disease",
     "vindicate_category": "I"
+  },
+  {
+    "term": "Shin Splints",
+    "abbreviations": [
+      "MTSS"
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Shoulder Dislocation",
+    "abbreviations": [
+      "SD"
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "T"
   },
   {
     "term": "SIADH",
@@ -4346,6 +5455,14 @@
     "abbreviations": [],
     "body_system": "Cardiovascular",
     "vindicate_category": "V"
+  },
+  {
+    "term": "Staphylococcal Toxic Shock Syndrome",
+    "abbreviations": [
+      "TSS"
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
   },
   {
     "term": "Status Epilepticus",
@@ -4533,6 +5650,14 @@
     "vindicate_category": "T"
   },
   {
+    "term": "Tendinopathy",
+    "abbreviations": [
+      ""
+    ],
+    "body_system": "Musculoskeletal",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Tension Headache",
     "abbreviations": [
       "tension-type headache"
@@ -4547,6 +5672,14 @@
     ],
     "body_system": "Pulmonary",
     "vindicate_category": "T"
+  },
+  {
+    "term": "Testicular Cancer",
+    "abbreviations": [
+      "TCA"
+    ],
+    "body_system": "Renal/GU",
+    "vindicate_category": "N"
   },
   {
     "term": "Testicular Torsion",
@@ -4703,6 +5836,14 @@
     "vindicate_category": "T"
   },
   {
+    "term": "Trichomoniasis",
+    "abbreviations": [
+      "Trich"
+    ],
+    "body_system": "OB/GYN",
+    "vindicate_category": "I"
+  },
+  {
     "term": "Tricuspid Regurgitation",
     "abbreviations": [
       "TR"
@@ -4724,6 +5865,14 @@
       "tic douloureux"
     ],
     "body_system": "Neurological",
+    "vindicate_category": "D"
+  },
+  {
+    "term": "Trochanteric Bursitis",
+    "abbreviations": [
+      "TB"
+    ],
+    "body_system": "Musculoskeletal",
     "vindicate_category": "D"
   },
   {
@@ -4791,6 +5940,14 @@
     "vindicate_category": "I"
   },
   {
+    "term": "Urinary Incontinence",
+    "abbreviations": [
+      "UI"
+    ],
+    "body_system": "Renal/GU",
+    "vindicate_category": "D"
+  },
+  {
     "term": "Urinary Retention",
     "abbreviations": [],
     "body_system": "Renal/GU",
@@ -4828,6 +5985,23 @@
     ],
     "body_system": "Ophthalmologic",
     "vindicate_category": "A"
+  },
+  {
+    "term": "Vaginal Candidiasis",
+    "abbreviations": [
+      "VC"
+    ],
+    "body_system": "OB/GYN",
+    "vindicate_category": "I"
+  },
+  {
+    "term": "Varicella",
+    "abbreviations": [
+      "Chickenpox",
+      "VZV"
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
   },
   {
     "term": "Varicocele",
@@ -4904,8 +6078,32 @@
     "vindicate_category": "I"
   },
   {
+    "term": "Vesicoureteral Reflux",
+    "abbreviations": [
+      "VUR"
+    ],
+    "body_system": "Renal/GU",
+    "vindicate_category": "C"
+  },
+  {
     "term": "Vestibular Neuritis",
     "abbreviations": [],
+    "body_system": "Neurological",
+    "vindicate_category": "I"
+  },
+  {
+    "term": "Viral Encephalitis",
+    "abbreviations": [
+      "VE"
+    ],
+    "body_system": "Neurological",
+    "vindicate_category": "I"
+  },
+  {
+    "term": "Viral Meningitis",
+    "abbreviations": [
+      "VM"
+    ],
     "body_system": "Neurological",
     "vindicate_category": "I"
   },
@@ -4961,10 +6159,26 @@
     "vindicate_category": "I"
   },
   {
+    "term": "Vulvovaginitis",
+    "abbreviations": [
+      "VV"
+    ],
+    "body_system": "OB/GYN",
+    "vindicate_category": "I"
+  },
+  {
     "term": "Waldenstrom Macroglobulinemia",
     "abbreviations": [],
     "body_system": "Hematologic/Oncologic",
     "vindicate_category": "N"
+  },
+  {
+    "term": "Wegener Granulomatosis",
+    "abbreviations": [
+      "GPA"
+    ],
+    "body_system": "Pulmonary",
+    "vindicate_category": "A"
   },
   {
     "term": "Wernicke Encephalopathy",
@@ -4973,6 +6187,14 @@
     ],
     "body_system": "Neurological",
     "vindicate_category": "E"
+  },
+  {
+    "term": "West Nile Virus",
+    "abbreviations": [
+      "WNV"
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
   },
   {
     "term": "Whipple Disease",
@@ -4999,6 +6221,14 @@
     "abbreviations": [],
     "body_system": "Gastrointestinal",
     "vindicate_category": "D"
+  },
+  {
+    "term": "Zika Virus Infection",
+    "abbreviations": [
+      "Zika"
+    ],
+    "body_system": "Infectious Disease",
+    "vindicate_category": "I"
   },
   {
     "term": "Zollinger-Ellison Syndrome",
