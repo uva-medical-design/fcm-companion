@@ -16,7 +16,8 @@ export function FeedbackNarrative({ text }: { text: string }) {
           );
           if (match) {
             const category = match[1];
-            const rest = content.slice(match[0].length);
+            // Strip any remaining markdown bold markers from the rest
+            const rest = content.slice(match[0].length).replace(/^\*\*\s*/, "").replace(/\*\*/g, "");
             const colorClass =
               category.toLowerCase() === "strength"
                 ? "text-green-700 dark:text-green-400"
