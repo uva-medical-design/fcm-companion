@@ -30,6 +30,7 @@ interface DashboardData {
   vindicate_coverage: Record<string, number>;
   cant_miss_rate: number | null;
   flagged_questions: { content: string; student: string }[];
+  topic_votes: Record<string, number>;
 }
 
 export default function DashboardPage() {
@@ -260,6 +261,45 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Discussion Topics */}
+          {data.topic_votes && Object.keys(data.topic_votes).length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Discussion Topics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {Object.entries(data.topic_votes)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([topic, count]) => {
+                      const maxVotes = Math.max(...Object.values(data.topic_votes));
+                      return (
+                        <div key={topic} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span>{topic}</span>
+                            <span className="text-muted-foreground">
+                              {count} vote{count !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          <div className="h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-primary/70 transition-all"
+                              style={{
+                                width: `${(count / maxVotes) * 100}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Flagged Questions */}
           {data.flagged_questions.length > 0 && (

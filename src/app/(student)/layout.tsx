@@ -8,7 +8,6 @@ import {
   BookOpen,
   ClipboardList,
   StickyNote,
-  GraduationCap,
   Library,
   LogOut,
   Stethoscope,
@@ -17,10 +16,9 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/cases", label: "Cases", icon: ClipboardList },
-  { href: "/practice", label: "Practice", icon: Library },
+  { href: "/practice", label: "Try a Case", icon: Library },
   { href: "/notes", label: "Notes", icon: StickyNote },
   { href: "/reference", label: "Resources", icon: BookOpen },
-  { href: "/osce", label: "OSCE", icon: GraduationCap },
 ];
 
 export default function StudentLayout({

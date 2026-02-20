@@ -1,23 +1,37 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PRACTICE_CASES } from "@/data/practice-cases";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Shuffle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 50;
 
 export default function PracticeLibraryPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [bodySystemFilter, setBodySystemFilter] = useState("");
-  const [sourceFilter, setSourceFilter] = useState("");
+  const [practiceMode, setPracticeMode] = useState<"differential" | "full">("differential");
+
+  // Load mode from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("practice-mode");
+    if (saved === "full") setPracticeMode("full");
+  }, []);
+
+  function toggleMode(mode: "differential" | "full") {
+    setPracticeMode(mode);
+    localStorage.setItem("practice-mode", mode);
+  }
   const [page, setPage] = useState(0);
 
-  // Derive unique body systems and sources from data
+  // Derive unique body systems from data
   const bodySystems = useMemo(() => {
     const systems = new Set<string>();
     for (const c of PRACTICE_CASES) {
@@ -26,25 +40,15 @@ export default function PracticeLibraryPage() {
     return Array.from(systems).sort();
   }, []);
 
-  const sources = useMemo(() => {
-    const s = new Set<string>();
-    for (const c of PRACTICE_CASES) {
-      s.add(c.source);
-    }
-    return Array.from(s).sort();
-  }, []);
-
   // Filter cases
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return PRACTICE_CASES.filter((c) => {
       if (bodySystemFilter && c.body_system !== bodySystemFilter) return false;
-      if (sourceFilter && c.source !== sourceFilter) return false;
       if (q) {
         const searchable = [
           c.title,
           c.chief_complaint,
-          c.correct_diagnosis,
         ]
           .join(" ")
           .toLowerCase();
@@ -52,7 +56,7 @@ export default function PracticeLibraryPage() {
       }
       return true;
     });
-  }, [search, bodySystemFilter, sourceFilter]);
+  }, [search, bodySystemFilter]);
 
   // Paginate
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -67,11 +71,52 @@ export default function PracticeLibraryPage() {
   return (
     <div className="p-4 space-y-4">
       <div>
-        <h1 className="text-lg font-semibold">Practice Library</h1>
+        <h1 className="text-lg font-semibold">Try a Case</h1>
         <p className="text-sm text-muted-foreground">
-          {filtered.length} cases available
+          Pick a chief complaint and build your differential
         </p>
       </div>
+
+      {/* Mode toggle */}
+      <div className="flex rounded-lg border p-0.5">
+        <button
+          type="button"
+          onClick={() => toggleMode("differential")}
+          className={cn(
+            "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+            practiceMode === "differential"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Differential Only
+        </button>
+        <button
+          type="button"
+          onClick={() => toggleMode("full")}
+          className={cn(
+            "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+            practiceMode === "full"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Full Case
+        </button>
+      </div>
+
+      {/* Random Case */}
+      <Button
+        variant="outline"
+        className="w-full h-11"
+        onClick={() => {
+          const randomCase = PRACTICE_CASES[Math.floor(Math.random() * PRACTICE_CASES.length)];
+          router.push(`/practice/${randomCase.id}`);
+        }}
+      >
+        <Shuffle className="h-4 w-4" />
+        Try a Random Case
+      </Button>
 
       {/* Search */}
       <div className="relative">
@@ -101,22 +146,6 @@ export default function PracticeLibraryPage() {
             </option>
           ))}
         </select>
-
-        <select
-          value={sourceFilter}
-          onChange={(e) => {
-            setSourceFilter(e.target.value);
-            setPage(0);
-          }}
-          className="rounded-md border bg-background px-3 py-1.5 text-sm"
-        >
-          <option value="">All Sources</option>
-          {sources.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
       </div>
 
       {/* Case list */}
@@ -136,16 +165,18 @@ export default function PracticeLibraryPage() {
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {c.body_system && (
-                      <Badge variant="secondary" className="text-xs">
-                        {c.body_system}
+                  {practiceMode === "full" && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {c.body_system && (
+                        <Badge variant="secondary" className="text-xs">
+                          {c.body_system}
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="text-xs">
+                        {c.difficulty}
                       </Badge>
-                    )}
-                    <Badge variant="outline" className="text-xs">
-                      {c.difficulty}
-                    </Badge>
-                  </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

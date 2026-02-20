@@ -33,12 +33,31 @@ export async function GET(request: NextRequest) {
       .select("*", { count: "exact", head: true })
       .eq("role", "student");
 
-    // Get flagged notes for this case
+    // Get flagged notes for this case (includes both questions and topic votes)
     const { data: flaggedNotes } = await supabase
       .from("fcm_notes")
       .select("content, fcm_users(name)")
       .eq("case_id", caseId)
       .eq("is_sent_to_instructor", true);
+
+    // Separate topic votes from regular questions
+    const topicVoteCounts: Record<string, number> = {};
+    const regularQuestions: typeof flaggedNotes = [];
+
+    for (const note of flaggedNotes || []) {
+      if (note.content?.startsWith("[TOPIC VOTE]")) {
+        // Parse: "[TOPIC VOTE] Topic1, Topic2 | Free text: "...""
+        const afterPrefix = note.content.slice("[TOPIC VOTE] ".length);
+        const pipeIndex = afterPrefix.indexOf(" | Free text:");
+        const topicsStr = pipeIndex >= 0 ? afterPrefix.slice(0, pipeIndex) : afterPrefix;
+        const topics = topicsStr.split(",").map((t: string) => t.trim()).filter(Boolean);
+        for (const topic of topics) {
+          topicVoteCounts[topic] = (topicVoteCounts[topic] || 0) + 1;
+        }
+      } else {
+        regularQuestions.push(note);
+      }
+    }
 
     // Compute diagnosis frequency
     const diagnosisFrequency: Record<string, number> = {};
@@ -93,10 +112,11 @@ export async function GET(request: NextRequest) {
           ? Math.round((cantMissHitCount / cantMissTotalChecked) * 100)
           : null,
       flagged_questions:
-        flaggedNotes?.map((n) => ({
+        regularQuestions?.map((n) => ({
           content: n.content,
           student: "Anonymous",
         })) || [],
+      topic_votes: topicVoteCounts,
     });
   } catch (error) {
     console.error("Dashboard error:", error);

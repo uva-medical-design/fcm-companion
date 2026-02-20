@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Loader2,
   CheckCircle,
@@ -31,6 +32,7 @@ import {
   BookOpen,
   AlertTriangle,
   Trash2,
+  Plus,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -44,6 +46,27 @@ export default function AdminPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetResult, setResetResult] = useState<string | null>(null);
+  const [showCreateCase, setShowCreateCase] = useState(false);
+  const [creatingCase, setCreatingCase] = useState(false);
+  const [createCaseResult, setCreateCaseResult] = useState<string | null>(null);
+  const [newCase, setNewCase] = useState({
+    case_id: "",
+    title: "",
+    chief_complaint: "",
+    patient_age: "",
+    patient_gender: "",
+    body_system: "",
+    difficulty: "Moderate",
+    differential_answer_key: "[]",
+  });
+  const [newSchedule, setNewSchedule] = useState({
+    enabled: false,
+    fcm_group: "All",
+    week_label: "",
+    unlock_date: "",
+    due_date: "",
+    session_date: "",
+  });
 
   useEffect(() => {
     async function fetchData() {
@@ -95,6 +118,66 @@ export default function AdminPage() {
         c.id === caseItem.id ? { ...c, is_active: !c.is_active } : c
       )
     );
+  }
+
+  async function handleCreateCase() {
+    if (!newCase.case_id || !newCase.title || !newCase.chief_complaint) return;
+    setCreatingCase(true);
+    setCreateCaseResult(null);
+    try {
+      let answerKey = [];
+      try {
+        answerKey = JSON.parse(newCase.differential_answer_key);
+      } catch {
+        // ignore parse errors, use empty array
+      }
+
+      const caseData = {
+        case_id: newCase.case_id,
+        title: newCase.title,
+        chief_complaint: newCase.chief_complaint,
+        patient_age: newCase.patient_age ? parseInt(newCase.patient_age) : null,
+        patient_gender: newCase.patient_gender || null,
+        body_system: newCase.body_system || null,
+        difficulty: newCase.difficulty,
+        differential_answer_key: answerKey,
+        is_active: true,
+        sort_order: cases.length,
+      };
+
+      const { data, error } = await supabase
+        .from("fcm_cases")
+        .insert(caseData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Optionally create schedule
+      if (newSchedule.enabled && newSchedule.unlock_date && newSchedule.due_date && newSchedule.session_date) {
+        await supabase.from("fcm_schedule").insert({
+          case_id: data.id,
+          fcm_group: newSchedule.fcm_group === "All" ? null : newSchedule.fcm_group,
+          week_label: newSchedule.week_label,
+          unlock_date: newSchedule.unlock_date,
+          due_date: newSchedule.due_date,
+          session_date: newSchedule.session_date,
+          semester: (settings.semester as string) || "2026-Spring",
+        });
+      }
+
+      setCases((prev) => [...prev, data]);
+      setCreateCaseResult("Case created successfully");
+      setShowCreateCase(false);
+      // Reset form
+      setNewCase({ case_id: "", title: "", chief_complaint: "", patient_age: "", patient_gender: "", body_system: "", difficulty: "Moderate", differential_answer_key: "[]" });
+      setNewSchedule({ enabled: false, fcm_group: "All", week_label: "", unlock_date: "", due_date: "", session_date: "" });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setCreateCaseResult(`Failed: ${message}`);
+    } finally {
+      setCreatingCase(false);
+    }
   }
 
   async function handleReset() {
@@ -247,6 +330,16 @@ export default function AdminPage() {
 
       {tab === "cases" && (
         <div className="space-y-3">
+          <Button onClick={() => setShowCreateCase(true)} size="sm">
+            <Plus className="h-4 w-4" />
+            Create Case
+          </Button>
+          {createCaseResult && (
+            <p className={`text-xs ${createCaseResult.startsWith("Failed") ? "text-destructive" : "text-green-600 dark:text-green-400"}`}>
+              {!createCaseResult.startsWith("Failed") && <CheckCircle className="h-3.5 w-3.5 inline mr-1" />}
+              {createCaseResult}
+            </p>
+          )}
           {cases.map((c) => (
             <Card key={c.id}>
               <CardContent className="p-4">
@@ -334,6 +427,213 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Create Case Dialog */}
+      <Dialog open={showCreateCase} onOpenChange={setShowCreateCase}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Case</DialogTitle>
+            <DialogDescription>
+              Add a new case to the FCM case library
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="case_id">Case ID *</Label>
+                <Input
+                  id="case_id"
+                  value={newCase.case_id}
+                  onChange={(e) => setNewCase((p) => ({ ...p, case_id: e.target.value }))}
+                  placeholder="FCM-CV-002"
+                />
+              </div>
+              <div>
+                <Label htmlFor="title">Title *</Label>
+                <Input
+                  id="title"
+                  value={newCase.title}
+                  onChange={(e) => setNewCase((p) => ({ ...p, title: e.target.value }))}
+                  placeholder="Chest Pain Case 2"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="chief_complaint">Chief Complaint *</Label>
+              <Input
+                id="chief_complaint"
+                value={newCase.chief_complaint}
+                onChange={(e) => setNewCase((p) => ({ ...p, chief_complaint: e.target.value }))}
+                placeholder="55-year-old male with acute chest pain"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="patient_age">Patient Age</Label>
+                <Input
+                  id="patient_age"
+                  type="number"
+                  value={newCase.patient_age}
+                  onChange={(e) => setNewCase((p) => ({ ...p, patient_age: e.target.value }))}
+                  placeholder="55"
+                />
+              </div>
+              <div>
+                <Label htmlFor="patient_gender">Patient Gender</Label>
+                <Select
+                  value={newCase.patient_gender}
+                  onValueChange={(v) => setNewCase((p) => ({ ...p, patient_gender: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="body_system">Body System</Label>
+                <Select
+                  value={newCase.body_system}
+                  onValueChange={(v) => setNewCase((p) => ({ ...p, body_system: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["Cardiovascular", "Pulmonary", "GI", "Musculoskeletal", "Neurological", "Renal/GU", "Infectious", "Endocrine/Metabolic", "Other"].map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="difficulty">Difficulty</Label>
+                <Select
+                  value={newCase.difficulty}
+                  onValueChange={(v) => setNewCase((p) => ({ ...p, difficulty: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Easy">Easy</SelectItem>
+                    <SelectItem value="Moderate">Moderate</SelectItem>
+                    <SelectItem value="Hard">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="answer_key">Differential Answer Key (JSON)</Label>
+              <Textarea
+                id="answer_key"
+                value={newCase.differential_answer_key}
+                onChange={(e) => setNewCase((p) => ({ ...p, differential_answer_key: e.target.value }))}
+                className="font-mono text-xs min-h-24"
+                placeholder='[{"diagnosis": "Acute Coronary Syndrome", "tier": "most_likely", "is_common": true, "is_cant_miss": true}]'
+              />
+            </div>
+
+            {/* Schedule section */}
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="schedule_enabled"
+                  checked={newSchedule.enabled}
+                  onChange={(e) => setNewSchedule((p) => ({ ...p, enabled: e.target.checked }))}
+                  className="rounded border"
+                />
+                <Label htmlFor="schedule_enabled" className="font-medium">Schedule this case</Label>
+              </div>
+              {newSchedule.enabled && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="fcm_group">FCM Group</Label>
+                      <Select
+                        value={newSchedule.fcm_group}
+                        onValueChange={(v) => setNewSchedule((p) => ({ ...p, fcm_group: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="All">All Groups</SelectItem>
+                          <SelectItem value="A">Group A</SelectItem>
+                          <SelectItem value="B">Group B</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="week_label">Week Label</Label>
+                      <Input
+                        id="week_label"
+                        value={newSchedule.week_label}
+                        onChange={(e) => setNewSchedule((p) => ({ ...p, week_label: e.target.value }))}
+                        placeholder="Week 8"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label htmlFor="unlock_date">Unlock Date</Label>
+                      <Input
+                        id="unlock_date"
+                        type="date"
+                        value={newSchedule.unlock_date}
+                        onChange={(e) => setNewSchedule((p) => ({ ...p, unlock_date: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="due_date">Due Date</Label>
+                      <Input
+                        id="due_date"
+                        type="date"
+                        value={newSchedule.due_date}
+                        onChange={(e) => setNewSchedule((p) => ({ ...p, due_date: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="session_date">Session Date</Label>
+                      <Input
+                        id="session_date"
+                        type="date"
+                        value={newSchedule.session_date}
+                        onChange={(e) => setNewSchedule((p) => ({ ...p, session_date: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateCase(false)} disabled={creatingCase}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateCase}
+              disabled={creatingCase || !newCase.case_id || !newCase.title || !newCase.chief_complaint}
+            >
+              {creatingCase ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Case"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Reset Confirmation Dialog */}
       <Dialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
