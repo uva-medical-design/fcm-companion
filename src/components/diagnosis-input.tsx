@@ -24,7 +24,7 @@ export function DiagnosisInput({
 
   function handleInputChange(value: string) {
     setInputValue(value);
-    if (value.trim().length >= 2) {
+    if (value.trim().length >= 3) {
       const results = searchDiagnoses(value);
       setSuggestions(results);
       setShowSuggestions(results.length > 0);

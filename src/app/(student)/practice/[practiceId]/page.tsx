@@ -5,8 +5,8 @@ import { useParams } from "next/navigation";
 import { PRACTICE_CASES } from "@/data/practice-cases";
 import type { DiagnosisEntry } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { DiagnosisInput } from "@/components/diagnosis-input";
 import { DiagnosisRow } from "@/components/diagnosis-row";
 import { FeedbackNarrative } from "@/components/feedback-narrative";
@@ -17,6 +17,7 @@ import {
   Loader2,
   ArrowLeft,
   AlertCircle,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,14 @@ export default function PracticeCasePage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<PracticeFeedback | null>(null);
+  const [practiceMode, setPracticeMode] = useState<"differential" | "full">("differential");
+  const [showCaseDetails, setShowCaseDetails] = useState(false);
+
+  // Load mode from localStorage
+  useEffect(() => {
+    const savedMode = localStorage.getItem("practice-mode");
+    if (savedMode === "full") setPracticeMode("full");
+  }, []);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -165,7 +174,7 @@ export default function PracticeCasePage() {
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Practice Library
+          Back to Try a Case
         </Link>
         <div className="flex items-center justify-center p-8">
           <div className="text-center space-y-2">
@@ -185,7 +194,7 @@ export default function PracticeCasePage() {
         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Practice Library
+        Back to Try a Case
       </Link>
 
       {/* Case header */}
@@ -194,7 +203,7 @@ export default function PracticeCasePage() {
           <h1 className="text-lg font-semibold leading-tight">
             {practiceCase.chief_complaint}
           </h1>
-          {practiceCase.body_system && (
+          {practiceMode === "full" && practiceCase.body_system && (
             <Badge variant="secondary" className="shrink-0">
               {practiceCase.body_system}
             </Badge>
@@ -205,9 +214,46 @@ export default function PracticeCasePage() {
             {practiceCase.patient_age}yo {practiceCase.patient_gender}
           </p>
         )}
-        <Badge variant="outline" className="text-xs">
-          {practiceCase.difficulty} &middot; {practiceCase.source}
-        </Badge>
+        {practiceMode === "full" && (
+          <>
+            <Badge variant="outline" className="text-xs">
+              {practiceCase.difficulty}
+            </Badge>
+            {practiceCase.vitals && Object.keys(practiceCase.vitals).length > 0 && (
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                {Object.entries(practiceCase.vitals).map(([k, v]) => (
+                  <span key={k}>{k}: {v}</span>
+                ))}
+              </div>
+            )}
+            {practiceCase.full_case_data && Object.keys(practiceCase.full_case_data).length > 0 && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowCaseDetails(!showCaseDetails)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showCaseDetails && "rotate-180")} />
+                  {showCaseDetails ? "Hide" : "Show"} Case Details
+                </button>
+                {showCaseDetails && (
+                  <Card className="mt-2">
+                    <CardContent className="p-3 text-xs space-y-2">
+                      {Object.entries(practiceCase.full_case_data).map(([section, content]) => (
+                        <div key={section}>
+                          <p className="font-medium capitalize">{section.replace(/_/g, " ")}</p>
+                          <p className="text-muted-foreground whitespace-pre-wrap">
+                            {typeof content === "string" ? content : JSON.stringify(content, null, 2)}
+                          </p>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Feedback result */}

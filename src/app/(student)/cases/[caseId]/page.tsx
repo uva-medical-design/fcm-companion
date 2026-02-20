@@ -386,6 +386,12 @@ export default function CaseDifferentialPage() {
                   Quick Quiz
                 </Button>
               </Link>
+              <Link href={`/cases/${caseId}/feedback#topics`}>
+                <Button variant="outline" size="sm">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Flag Topics
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

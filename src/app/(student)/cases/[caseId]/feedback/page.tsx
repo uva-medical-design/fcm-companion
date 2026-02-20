@@ -9,6 +9,7 @@ import { VINDICATE_CATEGORIES } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { FeedbackNarrative } from "@/components/feedback-narrative";
 import { cn } from "@/lib/utils";
 import {
@@ -21,6 +22,8 @@ import {
   RotateCcw,
   Eye,
   Brain,
+  Send,
+  MessageSquare,
 } from "lucide-react";
 
 function DiagnosisLink({ term }: { term: string }) {
@@ -47,6 +50,10 @@ export default function FeedbackPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showExpert, setShowExpert] = useState(false);
+  const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set());
+  const [topicFreeText, setTopicFreeText] = useState("");
+  const [topicsSent, setTopicsSent] = useState(false);
+  const [sendingTopics, setSendingTopics] = useState(false);
 
   async function generateFeedback() {
     setGenerating(true);
@@ -73,7 +80,7 @@ export default function FeedbackPage() {
     if (!user) return;
 
     async function fetchData() {
-      const [caseResult, subResult] = await Promise.all([
+      const [caseResult, subResult, noteResult] = await Promise.all([
         supabase.from("fcm_cases").select("*").eq("id", caseId).single(),
         supabase
           .from("fcm_submissions")
@@ -81,9 +88,22 @@ export default function FeedbackPage() {
           .eq("user_id", user!.id)
           .eq("case_id", caseId)
           .single(),
+        supabase
+          .from("fcm_notes")
+          .select("content")
+          .eq("user_id", user!.id)
+          .eq("case_id", caseId)
+          .eq("is_sent_to_instructor", true)
+          .maybeSingle(),
       ]);
 
       if (caseResult.data) setCaseData(caseResult.data);
+
+      // Check if topic vote already sent
+      if (noteResult.data?.content?.includes("[TOPIC VOTE]")) {
+        setTopicsSent(true);
+      }
+
       if (subResult.data) {
         setSubmission(subResult.data);
         if (subResult.data.feedback && subResult.data.feedback.ai_narrative) {
@@ -321,6 +341,101 @@ export default function FeedbackPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Topics for Discussion */}
+          <Card id="topics">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Topics for Discussion
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {topicsSent ? (
+                <div className="flex items-center gap-2 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3">
+                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                  <p className="text-sm text-green-800 dark:text-green-200">
+                    Topics sent to your instructor
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    What would you like to discuss in the small group session?
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      ...VINDICATE_CATEGORIES
+                        .filter((cat) => !feedback.vindicate_coverage[cat.key])
+                        .map((cat) => cat.label),
+                      "Clinical reasoning",
+                      "Physical exam approach",
+                      "Patient communication",
+                    ].map((topic) => (
+                      <button
+                        key={topic}
+                        type="button"
+                        onClick={() =>
+                          setSelectedTopics((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(topic)) next.delete(topic);
+                            else next.add(topic);
+                            return next;
+                          })
+                        }
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-xs transition-colors",
+                          selectedTopics.has(topic)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background hover:bg-accent"
+                        )}
+                      >
+                        {topic}
+                      </button>
+                    ))}
+                  </div>
+                  <Textarea
+                    value={topicFreeText}
+                    onChange={(e) => setTopicFreeText(e.target.value)}
+                    placeholder="Anything else you want to discuss? (optional)"
+                    className="min-h-16 text-sm"
+                    rows={2}
+                  />
+                  <Button
+                    size="sm"
+                    disabled={selectedTopics.size === 0 && !topicFreeText.trim() || sendingTopics}
+                    onClick={async () => {
+                      if (!user?.id) return;
+                      setSendingTopics(true);
+                      const topics = Array.from(selectedTopics).join(", ");
+                      const freeText = topicFreeText.trim();
+                      let content = `[TOPIC VOTE] ${topics}`;
+                      if (freeText) content += ` | Free text: "${freeText}"`;
+                      await fetch("/api/notes", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          user_id: user.id,
+                          case_id: caseId,
+                          content,
+                          is_sent_to_instructor: true,
+                        }),
+                      });
+                      setTopicsSent(true);
+                      setSendingTopics(false);
+                    }}
+                  >
+                    {sendingTopics ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                    Send Topics
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Phase 2 toggle */}
           {!showExpert ? (
