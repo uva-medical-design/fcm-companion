@@ -11,6 +11,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const sidebarItems = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
@@ -66,7 +67,7 @@ export default function FacultyLayout({
             );
           })}
         </nav>
-        <div className="border-t p-3">
+        <div className="border-t p-3 space-y-2">
           <div className="flex items-center justify-between">
             <div className="text-xs">
               <p className="font-medium">{user.name}</p>
@@ -82,6 +83,7 @@ export default function FacultyLayout({
               <LogOut className="h-4 w-4" />
             </button>
           </div>
+          <ThemeToggle />
         </div>
       </aside>
 

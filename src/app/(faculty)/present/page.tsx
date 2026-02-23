@@ -142,6 +142,7 @@ export default function PresentPage() {
               <button
                 key={i}
                 onClick={() => { setSlide(i); setPaused(true); }}
+                aria-label={`Go to slide ${i + 1}`}
                 className={cn(
                   "w-2.5 h-2.5 rounded-full transition-colors",
                   i === slide ? "bg-white" : "bg-slate-600 hover:bg-slate-500"
@@ -157,6 +158,7 @@ export default function PresentPage() {
           </button>
           <button
             onClick={() => router.push("/dashboard")}
+            aria-label="Exit presentation"
             className="p-1.5 text-slate-400 hover:text-white"
           >
             <X className="h-5 w-5" />
@@ -191,12 +193,14 @@ export default function PresentPage() {
       {/* Navigation arrows */}
       <button
         onClick={prev}
+        aria-label="Previous slide"
         className="fixed left-4 top-1/2 -translate-y-1/2 p-2 bg-slate-800/80 rounded-full text-slate-400 hover:text-white hover:bg-slate-700/80 transition-colors"
       >
         <ChevronLeft className="h-6 w-6" />
       </button>
       <button
         onClick={next}
+        aria-label="Next slide"
         className="fixed right-4 top-1/2 -translate-y-1/2 p-2 bg-slate-800/80 rounded-full text-slate-400 hover:text-white hover:bg-slate-700/80 transition-colors"
       >
         <ChevronRight className="h-6 w-6" />

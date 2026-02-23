@@ -20,6 +20,7 @@ function Accordion({ sections }: { sections: Section[] }) {
           <button
             className="flex w-full items-center justify-between p-4 text-left"
             onClick={() => setOpenIndex(openIndex === i ? null : i)}
+            aria-expanded={openIndex === i}
           >
             <span className="text-sm font-medium">{section.title}</span>
             <ChevronDown

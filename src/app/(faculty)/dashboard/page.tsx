@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { LoadingState, ErrorState } from "@/components/empty-state";
 import {
   Users,
   BarChart3,
@@ -52,19 +53,28 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingData, setLoadingData] = useState(false);
+  const [error, setError] = useState(false);
+  const [dataError, setDataError] = useState(false);
+  const [fetchKey, setFetchKey] = useState(0);
 
   useEffect(() => {
     async function fetchCases() {
-      const { data } = await supabase
-        .from("fcm_cases")
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order");
-      if (data) {
-        setCases(data);
-        if (data.length > 0) setSelectedCaseId(data[0].id);
+      try {
+        const { data, error: fetchErr } = await supabase
+          .from("fcm_cases")
+          .select("*")
+          .eq("is_active", true)
+          .order("sort_order");
+        if (fetchErr) throw fetchErr;
+        if (data) {
+          setCases(data);
+          if (data.length > 0) setSelectedCaseId(data[0].id);
+        }
+      } catch {
+        setError(true);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     fetchCases();
   }, []);
@@ -74,27 +84,36 @@ export default function DashboardPage() {
 
     async function fetchDashboard() {
       setLoadingData(true);
+      setDataError(false);
       try {
         const res = await fetch(`/api/dashboard?case_id=${selectedCaseId}`);
+        if (!res.ok) throw new Error("Failed to load");
         const json = await res.json();
         setData(json);
       } catch {
-        // silently fail
+        setDataError(true);
+      } finally {
+        setLoadingData(false);
       }
-      setLoadingData(false);
     }
 
     fetchDashboard();
-  }, [selectedCaseId]);
+  }, [selectedCaseId, fetchKey]);
 
   const selectedCase = cases.find((c) => c.id === selectedCaseId);
   const maxFreq = data?.diagnosis_frequency[0]?.count || 1;
 
   if (loading) {
+    return <LoadingState message="Loading dashboard..." />;
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-      </div>
+      <ErrorState
+        title="Couldn't load cases"
+        description="Check your connection and try again."
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 
@@ -138,7 +157,16 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {data && !loadingData && (
+      {dataError && !loadingData && (
+        <ErrorState
+          title="Couldn't load dashboard data"
+          description="The data for this case failed to load."
+          onRetry={() => setFetchKey((k) => k + 1)}
+          className="py-8"
+        />
+      )}
+
+      {data && !loadingData && !dataError && (
         <>
           {/* Suggested Focus */}
           {data.suggested_focus.length > 0 && (
@@ -226,7 +254,7 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Student Confidence */}
+          {/* Student Sentiment */}
           {(data.sentiment_summary.confident > 0 ||
             data.sentiment_summary.uncertain > 0 ||
             data.sentiment_summary.lost > 0) && (
@@ -234,7 +262,7 @@ export default function DashboardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <SmilePlus className="h-4 w-4" />
-                  Student Confidence
+                  Student Sentiment
                 </CardTitle>
               </CardHeader>
               <CardContent>

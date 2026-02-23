@@ -82,6 +82,7 @@ function BulkVindicateSection({
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
+          aria-expanded={expanded}
           className="flex items-center justify-between w-full text-left"
         >
           <div>

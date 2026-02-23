@@ -27,8 +27,10 @@ import {
   ArrowRight,
   Lock,
   Zap,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LoadingState, EmptyState, ErrorState } from "@/components/empty-state";
 
 interface CaseWithSchedule {
   schedule: FcmSchedule;
@@ -144,66 +146,79 @@ export default function CasesPage() {
   const router = useRouter();
   const [cases, setCases] = useState<CaseWithSchedule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!user) return;
 
     async function fetchCases() {
-      const [schedulesRes, submissionsRes, scoresRes] = await Promise.all([
-        supabase
-          .from("fcm_schedule")
-          .select("*, fcm_cases(*)")
-          .or(`fcm_group.eq.${user!.fcm_group},fcm_group.is.null`)
-          .order("unlock_date", { ascending: true }),
-        supabase
-          .from("fcm_submissions")
-          .select("*")
-          .eq("user_id", user!.id),
-        supabase
-          .from("fcm_quiz_scores")
-          .select("*")
-          .eq("user_id", user!.id),
-      ]);
+      try {
+        const [schedulesRes, submissionsRes, scoresRes] = await Promise.all([
+          supabase
+            .from("fcm_schedule")
+            .select("*, fcm_cases(*)")
+            .or(`fcm_group.eq.${user!.fcm_group},fcm_group.is.null`)
+            .order("unlock_date", { ascending: true }),
+          supabase
+            .from("fcm_submissions")
+            .select("*")
+            .eq("user_id", user!.id),
+          supabase
+            .from("fcm_quiz_scores")
+            .select("*")
+            .eq("user_id", user!.id),
+        ]);
 
-      const schedules = schedulesRes.data;
-      const submissions = submissionsRes.data;
-      const scores = (scoresRes.data as FcmQuizScore[]) || [];
+        if (schedulesRes.error) throw schedulesRes.error;
 
-      if (schedules) {
-        const caseList: CaseWithSchedule[] = schedules.map((s) => {
-          const submission =
-            submissions?.find(
-              (sub: FcmSubmission) => sub.case_id === s.case_id
-            ) || null;
-          const caseScores = scores.filter(
-            (sc) => sc.case_id === s.case_id
-          );
-          const timeline = computeTimeline(
-            s.session_date,
-            submission?.submitted_at || null,
-            caseScores
-          );
-          return {
-            schedule: s,
-            case_data: s.fcm_cases,
-            submission,
-            timeline,
-          };
-        });
-        setCases(caseList);
+        const schedules = schedulesRes.data;
+        const submissions = submissionsRes.data;
+        const scores = (scoresRes.data as FcmQuizScore[]) || [];
+
+        if (schedules) {
+          const caseList: CaseWithSchedule[] = schedules.map((s) => {
+            const submission =
+              submissions?.find(
+                (sub: FcmSubmission) => sub.case_id === s.case_id
+              ) || null;
+            const caseScores = scores.filter(
+              (sc) => sc.case_id === s.case_id
+            );
+            const timeline = computeTimeline(
+              s.session_date,
+              submission?.submitted_at || null,
+              caseScores
+            );
+            return {
+              schedule: s,
+              case_data: s.fcm_cases,
+              submission,
+              timeline,
+            };
+          });
+          setCases(caseList);
+        }
+      } catch {
+        setError(true);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     }
 
     fetchCases();
   }, [user]);
 
   if (loading) {
+    return <LoadingState message="Loading your cases..." />;
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <p className="text-sm text-muted-foreground">Loading cases...</p>
-      </div>
+      <ErrorState
+        title="Couldn't load cases"
+        description="Check your connection and try again."
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 
@@ -241,11 +256,11 @@ export default function CasesPage() {
       </div>
 
       {hasNoCases && (
-        <Card>
-          <CardContent className="p-6 text-center text-sm text-muted-foreground">
-            No cases assigned yet. Check back soon.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={ClipboardList}
+          title="No cases assigned yet"
+          description="Your instructor will add cases here as the course progresses. Check back soon."
+        />
       )}
 
       {/* Ready to Review */}

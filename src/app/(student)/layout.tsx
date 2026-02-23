@@ -13,6 +13,8 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { OnboardingModal } from "@/components/onboarding-modal";
 
 const navItems = [
   { href: "/cases", label: "Cases", icon: ClipboardList },
@@ -40,6 +42,7 @@ export default function StudentLayout({
 
   return (
     <div className="flex min-h-dvh bg-background">
+      <OnboardingModal />
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex md:w-56 md:flex-col border-r bg-sidebar h-dvh sticky top-0">
         <div className="flex h-14 items-center gap-2 border-b px-4">
@@ -67,7 +70,7 @@ export default function StudentLayout({
             );
           })}
         </nav>
-        <div className="border-t p-3">
+        <div className="border-t p-3 space-y-2">
           <div className="flex items-center justify-between">
             <div className="text-xs">
               <p className="font-medium">{user.name}</p>
@@ -83,6 +86,7 @@ export default function StudentLayout({
               <LogOut className="h-4 w-4" />
             </button>
           </div>
+          <ThemeToggle />
         </div>
       </aside>
 

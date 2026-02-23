@@ -137,6 +137,7 @@ export default function PracticeLibraryPage() {
             setBodySystemFilter(e.target.value);
             setPage(0);
           }}
+          aria-label="Filter by body system"
           className="rounded-md border bg-background px-3 py-1.5 text-sm"
         >
           <option value="">All Body Systems</option>
