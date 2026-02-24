@@ -57,23 +57,48 @@ The student's ${response_type === "voice" ? "spoken" : "typed"} response:
 For reference, the answer key includes these diagnoses: ${answerKeyDiagnoses.join(", ")}
 ${originalDiagnoses.length > 0 ? `\nThe student's original submission included: ${originalDiagnoses.join(", ")}` : ""}
 
-Evaluate the response on three dimensions:
-1. **Coverage** — How many of the key diagnoses did they recall?
-2. **Organization** — Did they present in a logical order (most likely first, then can't-miss)?
-3. **Clinical Reasoning** — Did they show any reasoning about why diagnoses are included?
+Evaluate the response and return a JSON object with this exact structure:
+{
+  "rubric": [
+    { "category": "History Gathering", "score": <1-5>, "comment": "<1 sentence>" },
+    { "category": "Physical Exam", "score": <1-5>, "comment": "<1 sentence>" },
+    { "category": "Clinical Reasoning", "score": <1-5>, "comment": "<1 sentence>" },
+    { "category": "Communication", "score": <1-5>, "comment": "<1 sentence>" }
+  ],
+  "narrative": "<3-4 sentences of supportive coach-like feedback. Note what they did well, what they could add, and whether they improved compared to their original submission if available. Be encouraging. End with one specific suggestion for improvement. Do NOT score or grade in the narrative.>"
+}
 
-Provide 3-4 sentences of supportive feedback. Note what they did well, what they could add, and whether they improved compared to their original submission (if available). Be encouraging and coach-like. Do NOT score or grade. End with one specific suggestion for improvement.`;
+Scoring guide:
+- History Gathering: Did they mention relevant history, risk factors, or associated symptoms?
+- Physical Exam: Did they reference expected findings or exams they would perform?
+- Clinical Reasoning: Did they organize diagnoses logically (most likely first, can't-miss considered)?
+- Communication: Was the response clear, structured, and professionally presented?
+
+Return ONLY the JSON object, no other text.`;
 
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 400,
+      max_tokens: 600,
       messages: [{ role: "user", content: prompt }],
     });
 
-    const evaluation =
+    const rawText =
       message.content[0].type === "text" ? message.content[0].text : "";
 
-    // Save the OSCE response
+    // Parse structured response
+    let rubric = [];
+    let narrative = rawText;
+    try {
+      const parsed = JSON.parse(rawText);
+      rubric = parsed.rubric || [];
+      narrative = parsed.narrative || rawText;
+    } catch {
+      // If JSON parsing fails, fall back to plain text narrative
+      rubric = [];
+      narrative = rawText;
+    }
+
+    // Save the OSCE response with structured evaluation
     const { data: osceResponse } = await supabase
       .from("fcm_osce_responses")
       .insert({
@@ -81,12 +106,17 @@ Provide 3-4 sentences of supportive feedback. Note what they did well, what they
         case_id,
         response_type,
         response_content,
-        evaluation: { text: evaluation },
+        evaluation: { rubric, narrative },
       })
       .select()
       .single();
 
-    return NextResponse.json({ evaluation, response: osceResponse });
+    return NextResponse.json({
+      rubric,
+      narrative,
+      evaluation: narrative, // backward compat
+      response: osceResponse,
+    });
   } catch (error) {
     console.error("OSCE evaluation error:", error);
     return NextResponse.json(

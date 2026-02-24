@@ -1,15 +1,20 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { PRACTICE_CASES } from "@/data/practice-cases";
+import { supabase } from "@/lib/supabase";
+import { useUser } from "@/lib/user-context";
 import type { DiagnosisEntry } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { DiagnosisInput } from "@/components/diagnosis-input";
 import { DiagnosisRow } from "@/components/diagnosis-row";
+import { DdxRanking } from "@/components/ddx-ranking";
 import { FeedbackNarrative } from "@/components/feedback-narrative";
+import { JourneyTimeline } from "@/components/journey-timeline";
+import type { PracticeEvent } from "@/components/journey-timeline";
 import {
   Send,
   CheckCircle,
@@ -30,6 +35,7 @@ interface PracticeFeedback {
 
 export default function PracticeCasePage() {
   const { practiceId } = useParams<{ practiceId: string }>();
+  const { user } = useUser();
   const practiceCase = PRACTICE_CASES.find((c) => c.id === practiceId);
 
   const [diagnoses, setDiagnoses] = useState<DiagnosisEntry[]>([]);
@@ -37,7 +43,34 @@ export default function PracticeCasePage() {
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<PracticeFeedback | null>(null);
   const [practiceMode, setPracticeMode] = useState<"differential" | "full">("differential");
+  const [listView, setListView] = useState<"detail" | "rank">("detail");
   const [showCaseDetails, setShowCaseDetails] = useState(false);
+  const [practiceEvents, setPracticeEvents] = useState<PracticeEvent[]>([]);
+  const eventsRef = useRef<PracticeEvent[]>([]);
+
+  // Log a practice event (in-memory + fire-and-forget to DB)
+  function logEvent(event_type: string, event_data: Record<string, unknown>) {
+    const event: PracticeEvent = {
+      event_type,
+      event_data,
+      created_at: new Date().toISOString(),
+    };
+    eventsRef.current = [...eventsRef.current, event];
+    setPracticeEvents([...eventsRef.current]);
+
+    // Fire-and-forget to Supabase (ok if it fails)
+    if (user && practiceId) {
+      supabase
+        .from("fcm_practice_events")
+        .insert({
+          user_id: user.id,
+          practice_case_id: practiceId,
+          event_type,
+          event_data,
+        })
+        .then(() => {});
+    }
+  }
 
   // Load mode from localStorage
   useEffect(() => {
@@ -69,14 +102,18 @@ export default function PracticeCasePage() {
         ...prev,
         { diagnosis: name, sort_order: prev.length },
       ]);
+      logEvent("diagnosis_added", { diagnosis: name });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
   function removeDiagnosis(index: number) {
+    const removed = diagnoses[index];
     setDiagnoses((prev) =>
       prev.filter((_, i) => i !== index).map((d, i) => ({ ...d, sort_order: i }))
     );
+    if (removed) logEvent("diagnosis_removed", { diagnosis: removed.diagnosis });
   }
 
   function moveUp(index: number) {
@@ -98,9 +135,15 @@ export default function PracticeCasePage() {
   }
 
   function updateConfidence(index: number, confidence: number) {
-    setDiagnoses((prev) =>
-      prev.map((d, i) => (i === index ? { ...d, confidence } : d))
+    const prev = diagnoses[index];
+    setDiagnoses((d) =>
+      d.map((entry, i) => (i === index ? { ...entry, confidence } : entry))
     );
+    logEvent("confidence_changed", {
+      diagnosis: prev?.diagnosis,
+      old_confidence: prev?.confidence,
+      new_confidence: confidence,
+    });
   }
 
   function updateReasoning(index: number, reasoning: string) {
@@ -112,6 +155,7 @@ export default function PracticeCasePage() {
   async function handleSubmit() {
     if (!practiceCase || diagnoses.length === 0) return;
     setSubmitting(true);
+    logEvent("submitted", { count: diagnoses.length });
 
     try {
       const res = await fetch("/api/practice-feedback", {
@@ -163,6 +207,8 @@ export default function PracticeCasePage() {
     setSubmitted(false);
     setFeedback(null);
     setDiagnoses([]);
+    setPracticeEvents([]);
+    eventsRef.current = [];
     localStorage.removeItem(`practice-${practiceId}`);
   }
 
@@ -283,6 +329,15 @@ export default function PracticeCasePage() {
         </Card>
       )}
 
+      {/* Journey Timeline (after submission) */}
+      {submitted && practiceEvents.length > 1 && (
+        <Card>
+          <CardContent className="p-4">
+            <JourneyTimeline events={practiceEvents} />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Diagnosis input */}
       {!submitted && (
         <>
@@ -306,23 +361,60 @@ export default function PracticeCasePage() {
         </>
       )}
 
-      {/* Diagnosis list */}
+      {/* View toggle + Diagnosis list */}
       {diagnoses.length > 0 && (
         <div className="space-y-2">
-          {diagnoses.map((entry, index) => (
-            <DiagnosisRow
-              key={`${entry.diagnosis}-${entry.sort_order}`}
-              entry={entry}
-              index={index}
-              total={diagnoses.length}
-              disabled={submitted}
+          {!submitted && diagnoses.length >= 2 && (
+            <div className="flex rounded-lg border p-0.5 w-fit">
+              <button
+                type="button"
+                onClick={() => setListView("detail")}
+                className={cn(
+                  "rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                  listView === "detail"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Detail
+              </button>
+              <button
+                type="button"
+                onClick={() => setListView("rank")}
+                className={cn(
+                  "rounded-md px-3 py-1 text-xs font-medium transition-colors",
+                  listView === "rank"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Rank
+              </button>
+            </div>
+          )}
+
+          {listView === "rank" && !submitted ? (
+            <DdxRanking
+              diagnoses={diagnoses}
+              onReorder={setDiagnoses}
               onRemove={removeDiagnosis}
-              onMoveUp={moveUp}
-              onMoveDown={moveDown}
-              onUpdateConfidence={updateConfidence}
-              onUpdateReasoning={updateReasoning}
             />
-          ))}
+          ) : (
+            diagnoses.map((entry, index) => (
+              <DiagnosisRow
+                key={`${entry.diagnosis}-${entry.sort_order}`}
+                entry={entry}
+                index={index}
+                total={diagnoses.length}
+                disabled={submitted}
+                onRemove={removeDiagnosis}
+                onMoveUp={moveUp}
+                onMoveDown={moveDown}
+                onUpdateConfidence={updateConfidence}
+                onUpdateReasoning={updateReasoning}
+              />
+            ))
+          )}
         </div>
       )}
 

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { LoadingState, ErrorState } from "@/components/empty-state";
+import { ConfidenceCalibration } from "@/components/confidence-calibration";
 import {
   Users,
   BarChart3,
@@ -43,6 +44,7 @@ interface DashboardData {
   session_captures: string[];
   flagged_questions: { content: string; student: string }[];
   topic_votes: Record<string, number>;
+  confidence_calibration: { label: string; confidence: number; wasCorrect: boolean }[];
 }
 
 export default function DashboardPage() {
@@ -369,6 +371,15 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Confidence Calibration */}
+          {data.confidence_calibration && data.confidence_calibration.length > 0 && (
+            <Card>
+              <CardContent className="p-4">
+                <ConfidenceCalibration dataPoints={data.confidence_calibration} />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Discussion Topics */}
           {data.topic_votes && Object.keys(data.topic_votes).length > 0 && (

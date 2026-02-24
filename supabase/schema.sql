@@ -129,3 +129,17 @@ CREATE POLICY "Allow all for fcm_osce_responses" ON fcm_osce_responses FOR ALL U
 
 ALTER TABLE fcm_quiz_scores ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all for fcm_quiz_scores" ON fcm_quiz_scores FOR ALL USING (true) WITH CHECK (true);
+
+-- fcm_practice_events: Lightweight event log for practice case actions
+CREATE TABLE IF NOT EXISTS fcm_practice_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES fcm_users(id) ON DELETE CASCADE,
+  practice_case_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  event_data JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_practice_events_user_case ON fcm_practice_events(user_id, practice_case_id);
+
+ALTER TABLE fcm_practice_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all for fcm_practice_events" ON fcm_practice_events FOR ALL USING (true) WITH CHECK (true);

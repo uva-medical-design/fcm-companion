@@ -97,6 +97,9 @@ export async function GET(request: NextRequest) {
       answerKeyStudentHits[entry.diagnosis] = new Set();
     }
 
+    // Collect confidence calibration data
+    const calibrationPoints: { label: string; confidence: number; wasCorrect: boolean }[] = [];
+
     for (const sub of submissions || []) {
       const userId: string = sub.user_id;
       const diagnoses: DiagnosisEntry[] = sub.diagnoses || [];
@@ -125,6 +128,23 @@ export async function GET(request: NextRequest) {
           if (entry.is_cant_miss) {
             cantMissStudentHits[entry.diagnosis]?.add(userId);
           }
+        }
+      }
+
+      // Collect calibration data from diagnoses with confidence ratings
+      for (const d of diagnoses) {
+        if (d.confidence && d.confidence >= 1) {
+          const dNorm = d.diagnosis.toLowerCase().trim();
+          const matchedKey = answerKey.some((entry) =>
+            [entry.diagnosis, ...entry.aliases]
+              .map((n) => n.toLowerCase().trim())
+              .includes(dNorm)
+          );
+          calibrationPoints.push({
+            label: d.diagnosis,
+            confidence: d.confidence,
+            wasCorrect: matchedKey,
+          });
         }
       }
 
@@ -229,6 +249,7 @@ export async function GET(request: NextRequest) {
           student: "Anonymous",
         })) || [],
       topic_votes: topicVoteCounts,
+      confidence_calibration: calibrationPoints,
     });
   } catch (error) {
     console.error("Dashboard error:", error);

@@ -9,6 +9,7 @@ import {
   ClipboardList,
   StickyNote,
   Library,
+  GraduationCap,
   LogOut,
   Stethoscope,
 } from "lucide-react";
@@ -19,6 +20,7 @@ import { OnboardingModal } from "@/components/onboarding-modal";
 const navItems = [
   { href: "/cases", label: "Cases", icon: ClipboardList },
   { href: "/practice", label: "Try a Case", icon: Library },
+  { href: "/osce", label: "OSCE Prep", icon: GraduationCap },
   { href: "/notes", label: "Notes", icon: StickyNote },
   { href: "/reference", label: "Resources", icon: BookOpen },
 ];

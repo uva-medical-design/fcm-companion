@@ -37,12 +37,12 @@ FCM Companion is a mobile-first web app for UVA medical students to practice dif
 - Practice mode toggle: "Differential Only" (default) vs "Full Case" — persisted in localStorage (`practice-mode` key)
 - Topic voting: stored in `fcm_notes` with `[TOPIC VOTE]` prefix and `is_sent_to_instructor: true`
 - Responsive layout: mobile bottom nav + desktop sidebar (md breakpoint). Sidebar uses `h-dvh sticky top-0` to stay viewport-pinned with user info always visible.
-- Student nav: Cases, Try a Case, Notes, Resources (OSCE hidden from nav, still accessible via `/osce`)
+- Student nav: Cases, Try a Case, OSCE Prep, Notes, Resources
 
 - `src/sw.ts` — Serwist service worker for PWA
 
 ## Database Tables
-`fcm_users`, `fcm_cases`, `fcm_schedule`, `fcm_submissions`, `fcm_notes`, `fcm_settings`, `fcm_osce_responses`, `fcm_quiz_scores`, `fcm_sentiments`, `fcm_session_captures`
+`fcm_users`, `fcm_cases`, `fcm_schedule`, `fcm_submissions`, `fcm_notes`, `fcm_settings`, `fcm_osce_responses`, `fcm_quiz_scores`, `fcm_sentiments`, `fcm_session_captures`, `fcm_practice_events`
 
 ## Commands
 ```bash
@@ -62,6 +62,8 @@ npx tsx scripts/import-uva-cases.ts <dir> # Parse UVA case files → SQL INSERT 
 - **v3.1** (Feb 19 late): Time-aware cases dashboard, Quick Refresh quiz, quiz score persistence
 - **v4** (Feb 20 AM): Refocus on early M1 experience — autocomplete threshold 2→3 chars, hide OSCE nav, rename Practice→"Try a Case", hide OSCE data from practice, Random Case button, topic voting (feedback page + case page + dashboard aggregation), vocabulary expansion (268→666 entries with body_system/vindicate_category), practice dual-mode (Differential Only / Full Case), admin case creation UI, UVA case import script, shared component extraction (DiagnosisInput, DiagnosisRow, ConfidenceRating, FeedbackNarrative)
 - **v5** (Feb 20 PM): Session dashboard (projectable 4-slide presentation at /present), quiz card quality (removed trivial cards, added differentiator + VINDICATE gap cards), auto-VINDICATE mapping in feedback, enhanced expert differential view (by tier with teaching points), student sentiment capture, feedback focus rotation, post-session quick capture, PWA conversion (Serwist service worker, manifest, installable)
+- **v6** (Feb 23): Visual refresh — dark mode, muted palette, diagnosis input elevation, onboarding, demo mode, a11y fixes
+- **v7** (Feb 23): OSCE expansion + Team INOVA design pattern integration — DDx drag-drop ranking (DdxRanking), confidence calibration chart (ConfidenceCalibration), decision journey timeline (JourneyTimeline), OSCE case browser with search/filter, structured OSCE rubric scoring (OsceRubric), OSCE history page (/osce/history), OSCE unhidden in nav, practice event logging (fcm_practice_events)
 
 ## Commit Style
 `type: description` (feat:, fix:, chore:, docs:)

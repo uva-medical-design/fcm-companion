@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/lib/user-context";
 import type { FcmCase } from "@/types";
@@ -8,6 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { OsceRubric } from "@/components/osce-rubric";
+import type { RubricScore } from "@/components/osce-rubric";
 import {
   Loader2,
   Mic,
@@ -16,21 +19,28 @@ import {
   RotateCcw,
   GraduationCap,
   ArrowLeft,
+  Search,
+  History,
 } from "lucide-react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
-type Mode = "list" | "text" | "voice";
+type Mode = "browse" | "text" | "voice";
 
 export default function OscePage() {
   const { user } = useUser();
   const [cases, setCases] = useState<FcmCase[]>([]);
   const [selectedCase, setSelectedCase] = useState<FcmCase | null>(null);
-  const [mode, setMode] = useState<Mode>("list");
+  const [mode, setMode] = useState<Mode>("browse");
   const [textResponse, setTextResponse] = useState("");
   const [voiceText, setVoiceText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [evaluation, setEvaluation] = useState<string | null>(null);
+  const [rubricScores, setRubricScores] = useState<RubricScore[]>([]);
+  const [narrative, setNarrative] = useState<string | null>(null);
   const [evaluating, setEvaluating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [bodySystemFilter, setBodySystemFilter] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
@@ -58,18 +68,44 @@ export default function OscePage() {
     if (user) fetchCases();
   }, [user]);
 
-  function startCase(c: FcmCase, m: Mode) {
+  // Derive unique body systems
+  const bodySystems = useMemo(() => {
+    const systems = new Set<string>();
+    for (const c of cases) {
+      if (c.body_system) systems.add(c.body_system);
+    }
+    return Array.from(systems).sort();
+  }, [cases]);
+
+  // Filter cases
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return cases.filter((c) => {
+      if (bodySystemFilter && c.body_system !== bodySystemFilter) return false;
+      if (q) {
+        const searchable = [c.chief_complaint, c.title, c.body_system]
+          .join(" ")
+          .toLowerCase();
+        if (!searchable.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [cases, search, bodySystemFilter]);
+
+  function startCase(c: FcmCase, m: "text" | "voice") {
     setSelectedCase(c);
     setMode(m);
     setTextResponse("");
     setVoiceText("");
-    setEvaluation(null);
+    setRubricScores([]);
+    setNarrative(null);
   }
 
   function goBack() {
     setSelectedCase(null);
-    setMode("list");
-    setEvaluation(null);
+    setMode("browse");
+    setRubricScores([]);
+    setNarrative(null);
     setTextResponse("");
     setVoiceText("");
     stopRecording();
@@ -90,9 +126,16 @@ export default function OscePage() {
         }),
       });
       const data = await res.json();
-      if (data.evaluation) setEvaluation(data.evaluation);
+      if (data.rubric && data.rubric.length > 0) {
+        setRubricScores(data.rubric);
+        setNarrative(data.narrative || null);
+      } else if (data.evaluation) {
+        // Fallback for plain text evaluation
+        setRubricScores([]);
+        setNarrative(data.evaluation);
+      }
     } catch {
-      setEvaluation("Unable to generate evaluation. Please try again.");
+      setNarrative("Unable to generate evaluation. Please try again.");
     }
     setEvaluating(false);
   }
@@ -101,7 +144,7 @@ export default function OscePage() {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setEvaluation(
+      setNarrative(
         "Speech recognition is not supported in your browser. Try Chrome on mobile."
       );
       return;
@@ -147,6 +190,8 @@ export default function OscePage() {
     setIsRecording(false);
   }
 
+  const hasEvaluation = narrative !== null;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -155,15 +200,23 @@ export default function OscePage() {
     );
   }
 
-  // Case list view
-  if (mode === "list") {
+  // Case browser view
+  if (mode === "browse") {
     return (
-      <div className="p-4 space-y-6">
-        <div>
-          <h1 className="text-xl font-semibold">OSCE Prep</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Practice presenting your differential from memory
-          </p>
+      <div className="p-4 space-y-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-lg font-semibold">OSCE Prep</h1>
+            <p className="text-sm text-muted-foreground">
+              Practice presenting your differential from memory
+            </p>
+          </div>
+          <Link href="/osce/history">
+            <Button variant="outline" size="sm">
+              <History className="h-4 w-4 mr-1" />
+              History
+            </Button>
+          </Link>
         </div>
 
         {cases.length === 0 ? (
@@ -173,40 +226,81 @@ export default function OscePage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
-            {cases.map((c) => (
-              <Card key={c.id}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">
-                    {c.chief_complaint}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-                    <Badge variant="outline">{c.body_system}</Badge>
-                    <Badge variant="outline">{c.difficulty}</Badge>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => startCase(c, "text")}
-                    >
-                      Type Response
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => startCase(c, "voice")}
-                    >
-                      <Mic className="h-3.5 w-3.5 mr-1" />
-                      Voice
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <>
+            {/* Search + filter */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search cases..."
+                  className="pl-9"
+                />
+              </div>
+              {bodySystems.length > 1 && (
+                <select
+                  value={bodySystemFilter}
+                  onChange={(e) => setBodySystemFilter(e.target.value)}
+                  aria-label="Filter by body system"
+                  className="rounded-md border bg-background px-3 py-1.5 text-sm"
+                >
+                  <option value="">All Systems</option>
+                  {bodySystems.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Case list */}
+            <div className="space-y-3">
+              {filtered.map((c) => (
+                <Card key={c.id}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">
+                      {c.chief_complaint}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                      {c.body_system && (
+                        <Badge variant="outline">{c.body_system}</Badge>
+                      )}
+                      <Badge variant="outline">{c.difficulty}</Badge>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => startCase(c, "text")}
+                      >
+                        Type Response
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => startCase(c, "voice")}
+                      >
+                        <Mic className="h-3.5 w-3.5 mr-1" />
+                        Voice
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {filtered.length === 0 && (
+              <div className="py-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No cases match your search.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
     );
@@ -223,7 +317,7 @@ export default function OscePage() {
         Back to cases
       </button>
 
-      {/* Case prompt — only chief complaint */}
+      {/* Case prompt */}
       <Card className="border-primary/30">
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -245,7 +339,7 @@ export default function OscePage() {
       </Card>
 
       {/* Text mode */}
-      {mode === "text" && !evaluation && (
+      {mode === "text" && !hasEvaluation && (
         <div className="space-y-3">
           <Textarea
             value={textResponse}
@@ -274,7 +368,7 @@ export default function OscePage() {
       )}
 
       {/* Voice mode */}
-      {mode === "voice" && !evaluation && (
+      {mode === "voice" && !hasEvaluation && (
         <div className="space-y-3">
           {voiceText && (
             <Card>
@@ -330,11 +424,15 @@ export default function OscePage() {
       )}
 
       {/* Evaluation result */}
-      {evaluation && (
+      {hasEvaluation && (
         <div className="space-y-3">
           <Card className="border-primary/30 bg-accent/30">
             <CardContent className="p-4">
-              <p className="text-sm leading-relaxed">{evaluation}</p>
+              {rubricScores.length > 0 ? (
+                <OsceRubric scores={rubricScores} narrative={narrative || ""} />
+              ) : (
+                <p className="text-sm leading-relaxed">{narrative}</p>
+              )}
             </CardContent>
           </Card>
 
