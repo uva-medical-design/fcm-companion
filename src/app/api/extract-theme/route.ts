@@ -20,6 +20,11 @@ const PRESETS: Record<string, { tokens: DesignTokens; mood: string }> = {
       muted_foreground: "#64748b",
       sidebar: "#f1f5f9",
       radius: "0.25rem",
+      font_body: "IBM Plex Sans",
+      font_mono: "IBM Plex Mono",
+      shadow: "sm",
+      border_width: "1",
+      density: "compact",
     },
     mood: "clinical sharp",
   },
@@ -35,6 +40,11 @@ const PRESETS: Record<string, { tokens: DesignTokens; mood: string }> = {
       muted_foreground: "#92400e",
       sidebar: "#fef3c7",
       radius: "0.75rem",
+      font_body: "Lora",
+      font_mono: "Source Code Pro",
+      shadow: "md",
+      border_width: "1",
+      density: "spacious",
     },
     mood: "warm inviting",
   },
@@ -50,6 +60,11 @@ const PRESETS: Record<string, { tokens: DesignTokens; mood: string }> = {
       muted_foreground: "#6b21a8",
       sidebar: "#ede9fe",
       radius: "1rem",
+      font_body: "Poppins",
+      font_mono: "Fira Code",
+      shadow: "lg",
+      border_width: "0",
+      density: "default",
     },
     mood: "playful modern",
   },
@@ -65,6 +80,11 @@ const PRESETS: Record<string, { tokens: DesignTokens; mood: string }> = {
       muted_foreground: "#737373",
       sidebar: "#fafafa",
       radius: "0rem",
+      font_body: "Space Grotesk",
+      font_mono: "JetBrains Mono",
+      shadow: "none",
+      border_width: "2",
+      density: "compact",
     },
     mood: "mono minimal",
   },
@@ -185,7 +205,7 @@ export async function POST(request: NextRequest) {
 
     content.push({
       type: "text",
-      text: `Analyze this UI screenshot and extract the design system tokens.
+      text: `Analyze this UI screenshot and extract design system tokens.
 Return a JSON object with exactly these keys:
 {
   "primary": "#hex",
@@ -198,21 +218,33 @@ Return a JSON object with exactly these keys:
   "muted_foreground": "#hex",
   "sidebar": "#hex",
   "radius": "Xrem",
+  "font_body": "Font Name",
+  "font_mono": "Font Name",
+  "shadow": "none|sm|md|lg",
+  "border_width": "0|1|2",
+  "density": "compact|default|spacious",
   "mood": "1-2 word descriptor"
 }
 
-Guidelines:
-- "primary" = the dominant accent/brand color
-- "background" = the page background color
-- "foreground" = the main text color
-- "card" = card/surface background color
+Color guidelines:
+- "primary" = dominant accent/brand color
+- "background" = page background
+- "foreground" = main text color
+- "card" = card/surface background
 - "card_foreground" = card text color
 - "border" = border/divider color
 - "muted" = subtle secondary background
-- "muted_foreground" = secondary/placeholder text color
-- "sidebar" = navigation/sidebar background
-- "radius" = corner rounding: "0rem" for sharp, "0.5rem" for moderate, "1rem" for rounded
-- "mood" = 1-2 word style descriptor (e.g. "clinical sharp", "warm playful", "minimal clean")
+- "muted_foreground" = secondary text color
+- "sidebar" = navigation background
+- "radius" = corner rounding: "0rem" sharp, "0.5rem" moderate, "1rem" rounded
+
+Scale guidelines:
+- "font_body" = closest Google Font match: Inter, Poppins, DM Sans, Plus Jakarta Sans, Merriweather, Lora, Space Grotesk, or IBM Plex Sans
+- "font_mono" = closest Google Font match: JetBrains Mono, Fira Code, Source Code Pro, or IBM Plex Mono
+- "shadow" = card shadow depth: "none" (flat), "sm" (subtle), "md" (medium), "lg" (elevated)
+- "border_width" = card border: "0" (none), "1" (thin), "2" (thick)
+- "density" = spacing feel: "compact" (tight/dense), "default" (normal), "spacious" (airy/loose)
+- "mood" = 1-2 word style descriptor
 
 Return ONLY valid JSON, no other text.`,
     });
@@ -244,6 +276,11 @@ Return ONLY valid JSON, no other text.`,
       muted_foreground: parsed.muted_foreground || "#78716c",
       sidebar: parsed.sidebar || "#f5f5f4",
       radius: parsed.radius || "0.625rem",
+      font_body: parsed.font_body || "Inter",
+      font_mono: parsed.font_mono || "JetBrains Mono",
+      shadow: parsed.shadow || "sm",
+      border_width: parsed.border_width || "1",
+      density: parsed.density || "default",
     };
 
     return NextResponse.json({

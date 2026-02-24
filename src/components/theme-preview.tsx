@@ -4,8 +4,8 @@ import { useState, useCallback } from "react";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { useDesignTheme } from "@/lib/design-theme-context";
+import { cn } from "@/lib/utils";
 import type { DesignTokens } from "@/types";
 
 interface ThemePreviewProps {
@@ -16,18 +16,83 @@ interface ThemePreviewProps {
   saving: boolean;
 }
 
-const TOKEN_LABELS: { key: keyof DesignTokens; label: string; isColor: boolean }[] = [
-  { key: "primary", label: "Primary", isColor: true },
-  { key: "background", label: "Background", isColor: true },
-  { key: "foreground", label: "Text", isColor: true },
-  { key: "card", label: "Card", isColor: true },
-  { key: "card_foreground", label: "Card Text", isColor: true },
-  { key: "border", label: "Border", isColor: true },
-  { key: "muted", label: "Muted BG", isColor: true },
-  { key: "muted_foreground", label: "Muted Text", isColor: true },
-  { key: "sidebar", label: "Sidebar", isColor: true },
-  { key: "radius", label: "Radius", isColor: false },
+const COLOR_TOKENS: { key: keyof DesignTokens; label: string }[] = [
+  { key: "primary", label: "Primary" },
+  { key: "background", label: "Background" },
+  { key: "foreground", label: "Text" },
+  { key: "card", label: "Card" },
+  { key: "card_foreground", label: "Card Text" },
+  { key: "border", label: "Border" },
+  { key: "muted", label: "Muted BG" },
+  { key: "muted_foreground", label: "Muted Text" },
+  { key: "sidebar", label: "Sidebar" },
 ];
+
+const BODY_FONTS = [
+  "Inter",
+  "Poppins",
+  "DM Sans",
+  "Plus Jakarta Sans",
+  "Merriweather",
+  "Lora",
+  "Space Grotesk",
+  "IBM Plex Sans",
+];
+
+const MONO_FONTS = [
+  "JetBrains Mono",
+  "Fira Code",
+  "Source Code Pro",
+  "IBM Plex Mono",
+];
+
+const SHADOW_OPTIONS = [
+  { value: "none", label: "Flat" },
+  { value: "sm", label: "Subtle" },
+  { value: "md", label: "Medium" },
+  { value: "lg", label: "Elevated" },
+] as const;
+
+const BORDER_WIDTH_OPTIONS = [
+  { value: "0", label: "None" },
+  { value: "1", label: "Thin" },
+  { value: "2", label: "Thick" },
+] as const;
+
+const DENSITY_OPTIONS = [
+  { value: "compact", label: "Compact" },
+  { value: "default", label: "Default" },
+  { value: "spacious", label: "Spacious" },
+] as const;
+
+function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex bg-muted rounded-md p-0.5 gap-0.5">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={cn(
+            "flex-1 text-[11px] py-1 px-2 rounded transition-colors",
+            value === opt.value
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function ThemePreview({
   tokens,
@@ -40,11 +105,10 @@ export function ThemePreview({
   const [themeName, setThemeName] = useState("");
   const isApplied = activeTheme !== null;
 
-  const handleColorChange = useCallback(
+  const updateToken = useCallback(
     (key: keyof DesignTokens, value: string) => {
       const updated = { ...tokens, [key]: value };
       onTokensChange(updated);
-      // If actively applied, update live
       if (isApplied) {
         setActiveTheme(updated);
       }
@@ -52,13 +116,8 @@ export function ThemePreview({
     [tokens, onTokensChange, isApplied, setActiveTheme]
   );
 
-  const handleApply = () => {
-    setActiveTheme(tokens);
-  };
-
-  const handleReset = () => {
-    clearTheme();
-  };
+  const handleApply = () => setActiveTheme(tokens);
+  const handleReset = () => clearTheme();
 
   const handleSave = () => {
     if (!themeName.trim()) return;
@@ -72,57 +131,134 @@ export function ThemePreview({
       {mood && (
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Mood:</span>
-          <Badge variant="secondary">{mood}</Badge>
+          <span className="text-xs font-medium bg-muted px-2 py-0.5 rounded">
+            {mood}
+          </span>
         </div>
       )}
 
-      {/* Token grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {TOKEN_LABELS.map(({ key, label, isColor }) => (
-          <div key={key} className="space-y-1">
-            <label className="text-[11px] text-muted-foreground">{label}</label>
-            {isColor ? (
-              <div className="flex items-center gap-1.5">
+      {/* Color grid */}
+      <div>
+        <p className="text-[11px] font-medium text-muted-foreground mb-2">Colors</p>
+        <div className="grid grid-cols-3 gap-2">
+          {COLOR_TOKENS.map(({ key, label }) => (
+            <div key={key} className="space-y-0.5">
+              <label className="text-[10px] text-muted-foreground">{label}</label>
+              <div className="flex items-center gap-1">
                 <input
                   type="color"
-                  value={tokens[key]}
-                  onChange={(e) => handleColorChange(key, e.target.value)}
-                  className="h-7 w-7 rounded border border-foreground/10 cursor-pointer bg-transparent p-0"
+                  value={tokens[key] as string}
+                  onChange={(e) => updateToken(key, e.target.value)}
+                  className="h-6 w-6 rounded border border-foreground/10 cursor-pointer bg-transparent p-0"
                 />
-                <span className="text-xs font-mono text-muted-foreground">
-                  {tokens[key]}
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {(tokens[key] as string)?.slice(0, 7)}
                 </span>
               </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <input
-                  type="range"
-                  min="0"
-                  max="1.5"
-                  step="0.125"
-                  value={parseFloat(tokens[key]) || 0}
-                  onChange={(e) =>
-                    handleColorChange(key, `${e.target.value}rem`)
-                  }
-                  className="flex-1 h-1.5 accent-primary"
-                />
-                <span className="text-xs font-mono text-muted-foreground w-12">
-                  {tokens[key]}
-                </span>
-              </div>
-            )}
-          </div>
-        ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Radius */}
+      <div>
+        <p className="text-[11px] font-medium text-muted-foreground mb-1">
+          Radius: {tokens.radius}
+        </p>
+        <input
+          type="range"
+          min="0"
+          max="1.5"
+          step="0.125"
+          value={parseFloat(tokens.radius) || 0}
+          onChange={(e) => updateToken("radius", `${e.target.value}rem`)}
+          className="w-full h-1.5 accent-primary"
+        />
+      </div>
+
+      {/* Fonts */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-[11px] font-medium text-muted-foreground block mb-1">
+            Body Font
+          </label>
+          <select
+            value={tokens.font_body || "Inter"}
+            onChange={(e) => updateToken("font_body", e.target.value)}
+            className="w-full text-xs h-8 rounded-md border bg-background px-2"
+          >
+            {BODY_FONTS.map((f) => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-[11px] font-medium text-muted-foreground block mb-1">
+            Mono Font
+          </label>
+          <select
+            value={tokens.font_mono || "JetBrains Mono"}
+            onChange={(e) => updateToken("font_mono", e.target.value)}
+            className="w-full text-xs h-8 rounded-md border bg-background px-2"
+          >
+            {MONO_FONTS.map((f) => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Shadow */}
+      <div>
+        <p className="text-[11px] font-medium text-muted-foreground mb-1">Card Shadow</p>
+        <SegmentedControl
+          options={SHADOW_OPTIONS}
+          value={(tokens.shadow as typeof SHADOW_OPTIONS[number]["value"]) || "sm"}
+          onChange={(v) => updateToken("shadow", v)}
+        />
+      </div>
+
+      {/* Border width */}
+      <div>
+        <p className="text-[11px] font-medium text-muted-foreground mb-1">Card Border</p>
+        <SegmentedControl
+          options={BORDER_WIDTH_OPTIONS}
+          value={(tokens.border_width as typeof BORDER_WIDTH_OPTIONS[number]["value"]) || "1"}
+          onChange={(v) => updateToken("border_width", v)}
+        />
+      </div>
+
+      {/* Density */}
+      <div>
+        <p className="text-[11px] font-medium text-muted-foreground mb-1">Density</p>
+        <SegmentedControl
+          options={DENSITY_OPTIONS}
+          value={(tokens.density as typeof DENSITY_OPTIONS[number]["value"]) || "default"}
+          onChange={(v) => updateToken("density", v)}
+        />
       </div>
 
       {/* Mini preview card */}
       <div
-        className="rounded-lg border p-3 space-y-2"
+        className="rounded-lg p-3 space-y-2"
         style={{
           backgroundColor: tokens.card,
           color: tokens.card_foreground,
           borderColor: tokens.border,
+          borderWidth: `${tokens.border_width || "1"}px`,
+          borderStyle: "solid",
           borderRadius: tokens.radius,
+          boxShadow:
+            tokens.shadow === "none"
+              ? "none"
+              : tokens.shadow === "lg"
+              ? "0 10px 15px -3px rgb(0 0 0 / 0.1)"
+              : tokens.shadow === "md"
+              ? "0 4px 6px -1px rgb(0 0 0 / 0.1)"
+              : "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+          fontFamily: tokens.font_body
+            ? `"${tokens.font_body}", sans-serif`
+            : undefined,
         }}
       >
         <div className="flex items-center gap-2">
@@ -136,10 +272,19 @@ export function ThemePreview({
           className="text-[11px]"
           style={{ color: tokens.muted_foreground }}
         >
-          This is how secondary text will look.
+          Secondary text in {tokens.font_body || "Inter"}.{" "}
+          <span
+            style={{
+              fontFamily: tokens.font_mono
+                ? `"${tokens.font_mono}", monospace`
+                : undefined,
+            }}
+          >
+            code_sample()
+          </span>
         </p>
         <div
-          className="text-[11px] px-2 py-1 rounded inline-block"
+          className="text-[11px] px-2 py-1 inline-block"
           style={{
             backgroundColor: tokens.primary,
             color: tokens.background,

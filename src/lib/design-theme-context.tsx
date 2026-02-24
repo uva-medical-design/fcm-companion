@@ -26,8 +26,8 @@ const DesignThemeContext = createContext<DesignThemeContextValue>({
 const STORAGE_KEY = "fcm-design-theme";
 const STORAGE_ID_KEY = "fcm-design-theme-id";
 
-// Map token keys to CSS custom property names
-const TOKEN_TO_CSS: Record<keyof DesignTokens, string[]> = {
+// Color token → CSS custom property mapping
+const COLOR_TOKEN_TO_CSS: Record<string, string[]> = {
   primary: ["--primary"],
   background: ["--background"],
   foreground: ["--foreground"],
@@ -40,17 +40,49 @@ const TOKEN_TO_CSS: Record<keyof DesignTokens, string[]> = {
   radius: ["--radius"],
 };
 
+// Shadow presets
+const SHADOW_VALUES: Record<string, string> = {
+  none: "none",
+  sm: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+  md: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+  lg: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+};
+
+// Density → root font-size (rem-based layout scales proportionally)
+const DENSITY_SIZES: Record<string, string> = {
+  compact: "14px",
+  default: "16px",
+  spacious: "18px",
+};
+
+// Google Fonts we support (body + mono pairings)
+const FONT_LINK_CACHE = new Set<string>();
+
+function loadGoogleFont(fontName: string) {
+  if (!fontName || fontName === "Inter" || fontName === "JetBrains Mono") return;
+  if (FONT_LINK_CACHE.has(fontName)) return;
+  FONT_LINK_CACHE.add(fontName);
+
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontName)}:wght@400;500;600;700&display=swap`;
+  document.head.appendChild(link);
+}
+
 function applyTokens(tokens: DesignTokens) {
   const root = document.documentElement;
-  for (const [key, cssVars] of Object.entries(TOKEN_TO_CSS)) {
+
+  // Color tokens
+  for (const [key, cssVars] of Object.entries(COLOR_TOKEN_TO_CSS)) {
     const value = tokens[key as keyof DesignTokens];
     if (value) {
       for (const cssVar of cssVars) {
-        root.style.setProperty(cssVar, value);
+        root.style.setProperty(cssVar, value as string);
       }
     }
   }
-  // Also set derived variables for consistency
+
+  // Derived color variables
   root.style.setProperty("--popover", tokens.card);
   root.style.setProperty("--popover-foreground", tokens.card_foreground);
   root.style.setProperty("--input", tokens.border);
@@ -58,12 +90,37 @@ function applyTokens(tokens: DesignTokens) {
   root.style.setProperty("--secondary-foreground", tokens.foreground);
   root.style.setProperty("--sidebar-foreground", tokens.foreground);
   root.style.setProperty("--sidebar-border", tokens.border);
+
+  // Font
+  if (tokens.font_body) {
+    loadGoogleFont(tokens.font_body);
+    root.style.setProperty("--font-sans", `"${tokens.font_body}", sans-serif`);
+  }
+  if (tokens.font_mono) {
+    loadGoogleFont(tokens.font_mono);
+    root.style.setProperty("--font-mono", `"${tokens.font_mono}", monospace`);
+  }
+
+  // Shadow
+  if (tokens.shadow && SHADOW_VALUES[tokens.shadow]) {
+    root.style.setProperty("--card-shadow", SHADOW_VALUES[tokens.shadow]);
+  }
+
+  // Border width
+  if (tokens.border_width) {
+    root.style.setProperty("--card-border-width", `${tokens.border_width}px`);
+  }
+
+  // Density (scales all rem-based spacing)
+  if (tokens.density && DENSITY_SIZES[tokens.density]) {
+    root.style.fontSize = DENSITY_SIZES[tokens.density];
+  }
 }
 
 function clearTokens() {
   const root = document.documentElement;
   const allVars = [
-    ...Object.values(TOKEN_TO_CSS).flat(),
+    ...Object.values(COLOR_TOKEN_TO_CSS).flat(),
     "--popover",
     "--popover-foreground",
     "--input",
@@ -71,10 +128,15 @@ function clearTokens() {
     "--secondary-foreground",
     "--sidebar-foreground",
     "--sidebar-border",
+    "--font-sans",
+    "--font-mono",
+    "--card-shadow",
+    "--card-border-width",
   ];
   for (const cssVar of allVars) {
     root.style.removeProperty(cssVar);
   }
+  root.style.removeProperty("font-size");
 }
 
 export function DesignThemeProvider({

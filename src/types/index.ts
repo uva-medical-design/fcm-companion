@@ -187,6 +187,12 @@ export interface DesignTokens {
   muted_foreground: string;
   sidebar: string;
   radius: string;
+  // Scale tokens (optional for backward compat with saved themes)
+  font_body?: string;
+  font_mono?: string;
+  shadow?: "none" | "sm" | "md" | "lg";
+  border_width?: "0" | "1" | "2";
+  density?: "compact" | "default" | "spacious";
 }
 
 export interface DesignTheme {
