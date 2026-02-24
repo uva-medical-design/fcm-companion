@@ -143,3 +143,20 @@ CREATE INDEX idx_practice_events_user_case ON fcm_practice_events(user_id, pract
 
 ALTER TABLE fcm_practice_events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all for fcm_practice_events" ON fcm_practice_events FOR ALL USING (true) WITH CHECK (true);
+
+-- fcm_themes: Student-created design themes (Design Lab)
+CREATE TABLE IF NOT EXISTS fcm_themes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES fcm_users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  tokens JSONB NOT NULL,
+  source_type TEXT NOT NULL,
+  source_label TEXT,
+  mood TEXT,
+  is_public BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_themes_user ON fcm_themes(user_id);
+
+ALTER TABLE fcm_themes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all for fcm_themes" ON fcm_themes FOR ALL USING (true) WITH CHECK (true);

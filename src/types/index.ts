@@ -174,3 +174,30 @@ export const VINDICATE_CATEGORIES = [
 ] as const;
 
 export type VindicateKey = typeof VINDICATE_CATEGORIES[number]["key"];
+
+// Design Lab types
+export interface DesignTokens {
+  primary: string;
+  background: string;
+  foreground: string;
+  card: string;
+  card_foreground: string;
+  border: string;
+  muted: string;
+  muted_foreground: string;
+  sidebar: string;
+  radius: string;
+}
+
+export interface DesignTheme {
+  id: string;
+  user_id: string;
+  name: string;
+  tokens: DesignTokens;
+  source_type: "screenshot" | "url" | "preset";
+  source_label: string | null;
+  mood: string | null;
+  is_public: boolean;
+  created_at: string;
+  author_name?: string;
+}

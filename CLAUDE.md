@@ -16,7 +16,7 @@ FCM Companion is a mobile-first web app for UVA medical students to practice dif
 - `src/app/(student)/` — Student route group (mobile shell + desktop sidebar)
 - `src/app/(faculty)/` — Faculty route group (desktop sidebar)
 - `src/app/(faculty)/present/page.tsx` — Projectable session dashboard (4 auto-advancing slides)
-- `src/app/api/` — API routes (feedback, practice-feedback, match-elements, submissions, notes, dashboard, osce, sentiments, session-captures)
+- `src/app/api/` — API routes (feedback, practice-feedback, match-elements, submissions, notes, dashboard, osce, sentiments, session-captures, extract-theme, themes)
 - `src/lib/feedback.ts` — Deterministic comparison + AI narrative generation
 - `src/data/practice-cases.ts` — 324 practice cases from AgentClinic (static JSON)
 - `src/data/clinical-vocabulary.json` — 666 diagnoses with abbreviations, body_system, vindicate_category
@@ -37,12 +37,12 @@ FCM Companion is a mobile-first web app for UVA medical students to practice dif
 - Practice mode 3-way toggle: "Essential" (default) / "Full Case" / "Simulation" — persisted in localStorage (`practice-mode` key, values: `differential`, `full`, `simulation`)
 - Topic voting: stored in `fcm_notes` with `[TOPIC VOTE]` prefix and `is_sent_to_instructor: true`
 - Responsive layout: mobile bottom nav + desktop sidebar (md breakpoint). Sidebar uses `h-dvh sticky top-0` to stay viewport-pinned with user info always visible.
-- Student nav: Cases, Try a Case, OSCE Prep, Notes, Resources
+- Student nav: Cases, Try a Case, OSCE Prep, Notes, Resources, Design Lab
 
 - `src/sw.ts` — Serwist service worker for PWA
 
 ## Database Tables
-`fcm_users`, `fcm_cases`, `fcm_schedule`, `fcm_submissions`, `fcm_notes`, `fcm_settings`, `fcm_osce_responses`, `fcm_quiz_scores`, `fcm_sentiments`, `fcm_session_captures`, `fcm_practice_events`
+`fcm_users`, `fcm_cases`, `fcm_schedule`, `fcm_submissions`, `fcm_notes`, `fcm_settings`, `fcm_osce_responses`, `fcm_quiz_scores`, `fcm_sentiments`, `fcm_session_captures`, `fcm_practice_events`, `fcm_themes`
 
 ## Commands
 ```bash
@@ -65,6 +65,18 @@ npx tsx scripts/import-uva-cases.ts <dir> # Parse UVA case files → SQL INSERT 
 - **v6** (Feb 23): Visual refresh — dark mode, muted palette, diagnosis input elevation, onboarding, demo mode, a11y fixes
 - **v7** (Feb 23): OSCE expansion + Team INOVA design pattern integration — DDx drag-drop ranking (DdxRanking), confidence calibration chart (ConfidenceCalibration), decision journey timeline (JourneyTimeline), OSCE case browser with search/filter, structured OSCE rubric scoring (OsceRubric), OSCE history page (/osce/history), OSCE unhidden in nav, practice event logging (fcm_practice_events)
 - **v7.1** (Feb 24): Essential/Simulation toggle — 3-way practice mode (Essential, Full Case, Simulation). Simulation mode adds connected 4-step flow: Case Review (vitals grid + presentation) → Gather (free-text H&P input + AI semantic matching via /api/match-elements) → Differential (DDx builder with ranking + confidence + reasoning) → Debrief Dashboard (summary, H&P annotated reveal, DDx evolution snapshots, confidence calibration, journey timeline, expert reasoning, teaching concepts). New components: SimulationFlow, SimulationProgress, CaseReviewStep, GatherStep, DebriefDashboard, DdxEvolution. Extended /api/practice-feedback for enriched simulation debrief.
+- **v8** (Feb 24): Design Lab — AI-powered theme extraction. Upload screenshots (Mobbin, Dribbble, Maze), paste image URLs, or pick presets. Claude Vision extracts design tokens (colors, radius, mood). Tokens override CSS custom properties live across the entire app. Save/name/share themes with classmates. New components: ThemeExtractor, ThemePreview, ThemeGallery, ThemeCard. New context: DesignThemeProvider (persists in localStorage). New API routes: /api/extract-theme (Claude Vision), /api/themes (CRUD). New DB table: fcm_themes.
+
+## Design Lab Architecture
+- `src/app/(student)/design-lab/page.tsx` — Main Design Lab page (two-panel: extractor + gallery)
+- `src/components/theme-extractor.tsx` — Upload/URL/preset input panel with 3 tabs
+- `src/components/theme-preview.tsx` — Editable token display (color pickers, radius slider, mini preview card)
+- `src/components/theme-gallery.tsx` — Shared gallery of saved themes from all students
+- `src/components/theme-card.tsx` — Single theme card (swatches, name, author, "Try It" button)
+- `src/lib/design-theme-context.tsx` — Context provider for CSS variable overrides (localStorage key: `fcm-design-theme`)
+- `src/app/api/extract-theme/route.ts` — Claude Vision API for screenshot → design tokens extraction
+- `src/app/api/themes/route.ts` — CRUD for saved themes in Supabase (GET/POST/DELETE)
+- 4 presets: Clinical Sharp, Warm Rounded, Material You, Mono Minimal
 
 ## Simulation Architecture
 - `src/components/simulation-flow.tsx` — 4-step orchestrator (state machine, localStorage persistence)
