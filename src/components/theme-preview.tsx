@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDesignTheme } from "@/lib/design-theme-context";
@@ -117,6 +117,7 @@ export function ThemePreview({
 }: ThemePreviewProps) {
   const { activeTheme, clearTheme, setActiveTheme } = useDesignTheme();
   const [themeName, setThemeName] = useState("");
+  const [copied, setCopied] = useState(false);
   const isApplied = activeTheme !== null;
 
   const updateToken = useCallback(
@@ -138,6 +139,48 @@ export function ThemePreview({
     onSave(themeName.trim());
     setThemeName("");
   };
+
+  const handleCopyCss = useCallback(() => {
+    const lines = [
+      `/* Design Lab Theme${mood ? ` — ${mood}` : ""} */`,
+      `:root {`,
+      `  --primary: ${tokens.primary};`,
+      `  --background: ${tokens.background};`,
+      `  --foreground: ${tokens.foreground};`,
+      `  --card: ${tokens.card};`,
+      `  --card-foreground: ${tokens.card_foreground};`,
+      `  --border: ${tokens.border};`,
+      `  --muted: ${tokens.muted};`,
+      `  --muted-foreground: ${tokens.muted_foreground};`,
+      `  --sidebar: ${tokens.sidebar};`,
+      `  --radius: ${tokens.radius};`,
+    ];
+    if (tokens.font_body && tokens.font_body !== "Inter") {
+      lines.push(`  --font-sans: "${tokens.font_body}", sans-serif;`);
+    }
+    if (tokens.font_mono && tokens.font_mono !== "JetBrains Mono") {
+      lines.push(`  --font-mono: "${tokens.font_mono}", monospace;`);
+    }
+    lines.push(`}`);
+
+    // Add font import if non-default
+    const imports: string[] = [];
+    if (tokens.font_body && tokens.font_body !== "Inter") {
+      imports.push(tokens.font_body);
+    }
+    if (tokens.font_mono && tokens.font_mono !== "JetBrains Mono") {
+      imports.push(tokens.font_mono);
+    }
+    if (imports.length > 0) {
+      const families = imports.map((f) => `family=${encodeURIComponent(f)}:wght@400;500;600;700`).join("&");
+      lines.unshift(`@import url('https://fonts.googleapis.com/css2?${families}&display=swap');`, "");
+    }
+
+    navigator.clipboard.writeText(lines.join("\n")).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [tokens, mood]);
 
   return (
     <div className="space-y-4">
@@ -392,6 +435,26 @@ export function ThemePreview({
           {saving ? "Saving..." : "Save Theme"}
         </Button>
       </div>
+
+      {/* Copy CSS */}
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={handleCopyCss}
+        className="w-full h-8 text-xs text-muted-foreground"
+      >
+        {copied ? (
+          <>
+            <Check className="h-3.5 w-3.5 mr-1" />
+            Copied!
+          </>
+        ) : (
+          <>
+            <Copy className="h-3.5 w-3.5 mr-1" />
+            Copy CSS Variables
+          </>
+        )}
+      </Button>
     </div>
   );
 }

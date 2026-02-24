@@ -1,15 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { Palette, RotateCcw } from "lucide-react";
+import { useState, useCallback, useRef } from "react";
+import { Palette, RotateCcw, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeExtractor } from "@/components/theme-extractor";
 import { ThemeGallery } from "@/components/theme-gallery";
 import { useDesignTheme } from "@/lib/design-theme-context";
+import type { DesignTokens } from "@/types";
 
 export default function DesignLabPage() {
-  const { activeTheme, clearTheme } = useDesignTheme();
+  const { activeTheme, clearTheme, setActiveTheme } = useDesignTheme();
   const [galleryRefresh, setGalleryRefresh] = useState(0);
+  const [peeking, setPeeking] = useState(false);
+  const savedThemeRef = useRef<DesignTokens | null>(null);
+
+  const togglePeek = useCallback(() => {
+    if (peeking) {
+      // Restore the theme
+      if (savedThemeRef.current) {
+        setActiveTheme(savedThemeRef.current);
+        savedThemeRef.current = null;
+      }
+      setPeeking(false);
+    } else {
+      // Temporarily remove theme to show default
+      savedThemeRef.current = activeTheme;
+      setActiveTheme(null);
+      setPeeking(true);
+    }
+  }, [peeking, activeTheme, setActiveTheme]);
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
@@ -25,18 +44,48 @@ export default function DesignLabPage() {
             transforms in real-time.
           </p>
         </div>
-        {activeTheme && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={clearTheme}
-            className="shrink-0"
-          >
-            <RotateCcw className="h-3.5 w-3.5 mr-1" />
-            Reset
-          </Button>
+        {(activeTheme || peeking) && (
+          <div className="flex gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant={peeking ? "default" : "outline"}
+              onClick={togglePeek}
+            >
+              {peeking ? (
+                <>
+                  <EyeOff className="h-3.5 w-3.5 mr-1" />
+                  Peeking at Default
+                </>
+              ) : (
+                <>
+                  <Eye className="h-3.5 w-3.5 mr-1" />
+                  Compare
+                </>
+              )}
+            </Button>
+            {!peeking && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={clearTheme}
+              >
+                <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                Reset
+              </Button>
+            )}
+          </div>
         )}
       </div>
+
+      {/* Peek banner */}
+      {peeking && (
+        <div className="bg-muted border rounded-lg px-4 py-2 flex items-center justify-between">
+          <p className="text-sm">
+            Showing the <strong>default theme</strong>. Click{" "}
+            <strong>Compare</strong> again to restore your theme.
+          </p>
+        </div>
+      )}
 
       {/* Two-panel layout */}
       <div className="grid md:grid-cols-2 gap-6">
