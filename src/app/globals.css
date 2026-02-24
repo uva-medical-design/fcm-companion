@@ -205,6 +205,42 @@
   border-width: var(--card-border-width) !important;
 }
 
+/* Button style overrides */
+html[data-button-style="pill"] [data-slot="button"] {
+  border-radius: 9999px !important;
+}
+html[data-button-style="sharp"] [data-slot="button"] {
+  border-radius: 0 !important;
+}
+html[data-button-style="outline-heavy"] [data-slot="button"][data-variant="default"] {
+  background: transparent !important;
+  color: var(--primary) !important;
+  border: 2px solid var(--primary) !important;
+  box-shadow: none !important;
+}
+html[data-button-style="outline-heavy"] [data-slot="button"][data-variant="default"]:hover {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+/* Card style overrides */
+html[data-card-style="elevated"] [data-slot="card"] {
+  border-width: 0 !important;
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1), 0 4px 10px -4px rgb(0 0 0 / 0.06) !important;
+}
+html[data-card-style="flat"] [data-slot="card"] {
+  border-width: 0 !important;
+  box-shadow: none !important;
+  background: var(--muted) !important;
+}
+html[data-card-style="glass"] [data-slot="card"] {
+  background: color-mix(in srgb, var(--card) 70%, transparent) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-width: 1px !important;
+  border-color: color-mix(in srgb, var(--border) 50%, transparent) !important;
+}
+
 /* ============================================
    BASE STYLES
    ============================================ */

@@ -115,6 +115,18 @@ function applyTokens(tokens: DesignTokens) {
   if (tokens.density && DENSITY_SIZES[tokens.density]) {
     root.style.fontSize = DENSITY_SIZES[tokens.density];
   }
+
+  // Component styles (via data attributes for CSS targeting)
+  if (tokens.button_style && tokens.button_style !== "default") {
+    root.setAttribute("data-button-style", tokens.button_style);
+  } else {
+    root.removeAttribute("data-button-style");
+  }
+  if (tokens.card_style && tokens.card_style !== "default") {
+    root.setAttribute("data-card-style", tokens.card_style);
+  } else {
+    root.removeAttribute("data-card-style");
+  }
 }
 
 function clearTokens() {
@@ -137,6 +149,8 @@ function clearTokens() {
     root.style.removeProperty(cssVar);
   }
   root.style.removeProperty("font-size");
+  root.removeAttribute("data-button-style");
+  root.removeAttribute("data-card-style");
 }
 
 export function DesignThemeProvider({

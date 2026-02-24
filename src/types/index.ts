@@ -193,6 +193,9 @@ export interface DesignTokens {
   shadow?: "none" | "sm" | "md" | "lg";
   border_width?: "0" | "1" | "2";
   density?: "compact" | "default" | "spacious";
+  // Component style tokens
+  button_style?: "default" | "pill" | "sharp" | "outline-heavy";
+  card_style?: "default" | "elevated" | "flat" | "glass";
 }
 
 export interface DesignTheme {

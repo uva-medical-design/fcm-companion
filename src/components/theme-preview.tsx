@@ -65,6 +65,20 @@ const DENSITY_OPTIONS = [
   { value: "spacious", label: "Spacious" },
 ] as const;
 
+const BUTTON_STYLE_OPTIONS = [
+  { value: "default", label: "Rounded" },
+  { value: "pill", label: "Pill" },
+  { value: "sharp", label: "Sharp" },
+  { value: "outline-heavy", label: "Outline" },
+] as const;
+
+const CARD_STYLE_OPTIONS = [
+  { value: "default", label: "Bordered" },
+  { value: "elevated", label: "Elevated" },
+  { value: "flat", label: "Flat" },
+  { value: "glass", label: "Glass" },
+] as const;
+
 function SegmentedControl<T extends string>({
   options,
   value,
@@ -238,24 +252,60 @@ export function ThemePreview({
         />
       </div>
 
+      {/* Button style */}
+      <div>
+        <p className="text-[11px] font-medium text-muted-foreground mb-1">Button Style</p>
+        <SegmentedControl
+          options={BUTTON_STYLE_OPTIONS}
+          value={(tokens.button_style as typeof BUTTON_STYLE_OPTIONS[number]["value"]) || "default"}
+          onChange={(v) => updateToken("button_style", v)}
+        />
+      </div>
+
+      {/* Card style */}
+      <div>
+        <p className="text-[11px] font-medium text-muted-foreground mb-1">Card Style</p>
+        <SegmentedControl
+          options={CARD_STYLE_OPTIONS}
+          value={(tokens.card_style as typeof CARD_STYLE_OPTIONS[number]["value"]) || "default"}
+          onChange={(v) => updateToken("card_style", v)}
+        />
+      </div>
+
       {/* Mini preview card */}
       <div
         className="rounded-lg p-3 space-y-2"
         style={{
-          backgroundColor: tokens.card,
+          backgroundColor:
+            tokens.card_style === "flat"
+              ? tokens.muted
+              : tokens.card_style === "glass"
+              ? `color-mix(in srgb, ${tokens.card} 70%, transparent)`
+              : tokens.card,
           color: tokens.card_foreground,
-          borderColor: tokens.border,
-          borderWidth: `${tokens.border_width || "1"}px`,
+          borderColor:
+            tokens.card_style === "glass"
+              ? `color-mix(in srgb, ${tokens.border} 50%, transparent)`
+              : tokens.border,
+          borderWidth:
+            tokens.card_style === "elevated" || tokens.card_style === "flat"
+              ? "0px"
+              : `${tokens.border_width || "1"}px`,
           borderStyle: "solid",
           borderRadius: tokens.radius,
           boxShadow:
-            tokens.shadow === "none"
+            tokens.card_style === "elevated"
+              ? "0 10px 25px -5px rgb(0 0 0 / 0.1), 0 4px 10px -4px rgb(0 0 0 / 0.06)"
+              : tokens.card_style === "flat"
+              ? "none"
+              : tokens.shadow === "none"
               ? "none"
               : tokens.shadow === "lg"
               ? "0 10px 15px -3px rgb(0 0 0 / 0.1)"
               : tokens.shadow === "md"
               ? "0 4px 6px -1px rgb(0 0 0 / 0.1)"
               : "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+          backdropFilter: tokens.card_style === "glass" ? "blur(12px)" : undefined,
           fontFamily: tokens.font_body
             ? `"${tokens.font_body}", sans-serif`
             : undefined,
@@ -284,11 +334,26 @@ export function ThemePreview({
           </span>
         </p>
         <div
-          className="text-[11px] px-2 py-1 inline-block"
+          className="text-[11px] px-2 py-1 inline-block font-medium"
           style={{
-            backgroundColor: tokens.primary,
-            color: tokens.background,
-            borderRadius: tokens.radius,
+            backgroundColor:
+              tokens.button_style === "outline-heavy"
+                ? "transparent"
+                : tokens.primary,
+            color:
+              tokens.button_style === "outline-heavy"
+                ? tokens.primary
+                : tokens.background,
+            border:
+              tokens.button_style === "outline-heavy"
+                ? `2px solid ${tokens.primary}`
+                : "none",
+            borderRadius:
+              tokens.button_style === "pill"
+                ? "9999px"
+                : tokens.button_style === "sharp"
+                ? "0"
+                : tokens.radius,
           }}
         >
           Button

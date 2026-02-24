@@ -25,6 +25,8 @@ const PRESETS: Record<string, { tokens: DesignTokens; mood: string }> = {
       shadow: "sm",
       border_width: "1",
       density: "compact",
+      button_style: "sharp",
+      card_style: "default",
     },
     mood: "clinical sharp",
   },
@@ -45,6 +47,8 @@ const PRESETS: Record<string, { tokens: DesignTokens; mood: string }> = {
       shadow: "md",
       border_width: "1",
       density: "spacious",
+      button_style: "pill",
+      card_style: "elevated",
     },
     mood: "warm inviting",
   },
@@ -65,6 +69,8 @@ const PRESETS: Record<string, { tokens: DesignTokens; mood: string }> = {
       shadow: "lg",
       border_width: "0",
       density: "default",
+      button_style: "default",
+      card_style: "elevated",
     },
     mood: "playful modern",
   },
@@ -85,6 +91,8 @@ const PRESETS: Record<string, { tokens: DesignTokens; mood: string }> = {
       shadow: "none",
       border_width: "2",
       density: "compact",
+      button_style: "sharp",
+      card_style: "flat",
     },
     mood: "mono minimal",
   },
@@ -223,6 +231,8 @@ Return a JSON object with exactly these keys:
   "shadow": "none|sm|md|lg",
   "border_width": "0|1|2",
   "density": "compact|default|spacious",
+  "button_style": "default|pill|sharp|outline-heavy",
+  "card_style": "default|elevated|flat|glass",
   "mood": "1-2 word descriptor"
 }
 
@@ -244,6 +254,10 @@ Scale guidelines:
 - "shadow" = card shadow depth: "none" (flat), "sm" (subtle), "md" (medium), "lg" (elevated)
 - "border_width" = card border: "0" (none), "1" (thin), "2" (thick)
 - "density" = spacing feel: "compact" (tight/dense), "default" (normal), "spacious" (airy/loose)
+
+Component guidelines:
+- "button_style" = button shape: "default" (rounded), "pill" (fully round ends), "sharp" (square corners), "outline-heavy" (outlined, no fill)
+- "card_style" = card treatment: "default" (border + subtle shadow), "elevated" (no border, large shadow), "flat" (no border/shadow, muted bg), "glass" (semi-transparent, blur backdrop)
 - "mood" = 1-2 word style descriptor
 
 Return ONLY valid JSON, no other text.`,
@@ -281,6 +295,8 @@ Return ONLY valid JSON, no other text.`,
       shadow: parsed.shadow || "sm",
       border_width: parsed.border_width || "1",
       density: parsed.density || "default",
+      button_style: parsed.button_style || "default",
+      card_style: parsed.card_style || "default",
     };
 
     return NextResponse.json({
