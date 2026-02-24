@@ -16,7 +16,7 @@ FCM Companion is a mobile-first web app for UVA medical students to practice dif
 - `src/app/(student)/` — Student route group (mobile shell + desktop sidebar)
 - `src/app/(faculty)/` — Faculty route group (desktop sidebar)
 - `src/app/(faculty)/present/page.tsx` — Projectable session dashboard (4 auto-advancing slides)
-- `src/app/api/` — API routes (feedback, practice-feedback, submissions, notes, dashboard, osce, sentiments, session-captures)
+- `src/app/api/` — API routes (feedback, practice-feedback, match-elements, submissions, notes, dashboard, osce, sentiments, session-captures)
 - `src/lib/feedback.ts` — Deterministic comparison + AI narrative generation
 - `src/data/practice-cases.ts` — 324 practice cases from AgentClinic (static JSON)
 - `src/data/clinical-vocabulary.json` — 666 diagnoses with abbreviations, body_system, vindicate_category
@@ -34,7 +34,7 @@ FCM Companion is a mobile-first web app for UVA medical students to practice dif
 - VINDICATE framework: V-I-N-D-I-C-A-T-E (9 categories, "I2" key for Iatrogenic)
 - Feedback: deterministic comparison first, then AI narrative (categorized bullets)
 - Practice cases stored in localStorage (no Supabase FK dependency)
-- Practice mode toggle: "Differential Only" (default) vs "Full Case" — persisted in localStorage (`practice-mode` key)
+- Practice mode 3-way toggle: "Essential" (default) / "Full Case" / "Simulation" — persisted in localStorage (`practice-mode` key, values: `differential`, `full`, `simulation`)
 - Topic voting: stored in `fcm_notes` with `[TOPIC VOTE]` prefix and `is_sent_to_instructor: true`
 - Responsive layout: mobile bottom nav + desktop sidebar (md breakpoint). Sidebar uses `h-dvh sticky top-0` to stay viewport-pinned with user info always visible.
 - Student nav: Cases, Try a Case, OSCE Prep, Notes, Resources
@@ -64,6 +64,17 @@ npx tsx scripts/import-uva-cases.ts <dir> # Parse UVA case files → SQL INSERT 
 - **v5** (Feb 20 PM): Session dashboard (projectable 4-slide presentation at /present), quiz card quality (removed trivial cards, added differentiator + VINDICATE gap cards), auto-VINDICATE mapping in feedback, enhanced expert differential view (by tier with teaching points), student sentiment capture, feedback focus rotation, post-session quick capture, PWA conversion (Serwist service worker, manifest, installable)
 - **v6** (Feb 23): Visual refresh — dark mode, muted palette, diagnosis input elevation, onboarding, demo mode, a11y fixes
 - **v7** (Feb 23): OSCE expansion + Team INOVA design pattern integration — DDx drag-drop ranking (DdxRanking), confidence calibration chart (ConfidenceCalibration), decision journey timeline (JourneyTimeline), OSCE case browser with search/filter, structured OSCE rubric scoring (OsceRubric), OSCE history page (/osce/history), OSCE unhidden in nav, practice event logging (fcm_practice_events)
+- **v7.1** (Feb 24): Essential/Simulation toggle — 3-way practice mode (Essential, Full Case, Simulation). Simulation mode adds connected 4-step flow: Case Review (vitals grid + presentation) → Gather (free-text H&P input + AI semantic matching via /api/match-elements) → Differential (DDx builder with ranking + confidence + reasoning) → Debrief Dashboard (summary, H&P annotated reveal, DDx evolution snapshots, confidence calibration, journey timeline, expert reasoning, teaching concepts). New components: SimulationFlow, SimulationProgress, CaseReviewStep, GatherStep, DebriefDashboard, DdxEvolution. Extended /api/practice-feedback for enriched simulation debrief.
+
+## Simulation Architecture
+- `src/components/simulation-flow.tsx` — 4-step orchestrator (state machine, localStorage persistence)
+- `src/components/simulation-progress.tsx` — Horizontal progress bar (clickable completed steps)
+- `src/components/case-review-step.tsx` — Step 1: vitals grid with abnormal highlighting, demographics, history
+- `src/components/gather-step.tsx` — Step 2: free-text chip input + AI matching annotated reveal
+- `src/components/debrief-dashboard.tsx` — Step 4: composite debrief (7 sections)
+- `src/components/ddx-evolution.tsx` — DDx snapshot comparison display
+- Simulation state persisted in localStorage key `sim-{practiceId}`
+- Step 3 reuses existing DiagnosisInput, DiagnosisRow, DdxRanking
 
 ## Commit Style
 `type: description` (feat:, fix:, chore:, docs:)

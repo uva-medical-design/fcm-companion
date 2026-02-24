@@ -17,15 +17,15 @@ export default function PracticeLibraryPage() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [bodySystemFilter, setBodySystemFilter] = useState("");
-  const [practiceMode, setPracticeMode] = useState<"differential" | "full">("differential");
+  const [practiceMode, setPracticeMode] = useState<"differential" | "full" | "simulation">("differential");
 
   // Load mode from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("practice-mode");
-    if (saved === "full") setPracticeMode("full");
+    if (saved === "full" || saved === "simulation") setPracticeMode(saved);
   }, []);
 
-  function toggleMode(mode: "differential" | "full") {
+  function toggleMode(mode: "differential" | "full" | "simulation") {
     setPracticeMode(mode);
     localStorage.setItem("practice-mode", mode);
   }
@@ -79,30 +79,25 @@ export default function PracticeLibraryPage() {
 
       {/* Mode toggle */}
       <div className="flex rounded-lg border p-0.5">
-        <button
-          type="button"
-          onClick={() => toggleMode("differential")}
-          className={cn(
-            "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-            practiceMode === "differential"
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Differential Only
-        </button>
-        <button
-          type="button"
-          onClick={() => toggleMode("full")}
-          className={cn(
-            "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-            practiceMode === "full"
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Full Case
-        </button>
+        {([
+          { key: "differential", label: "Essential" },
+          { key: "full", label: "Full Case" },
+          { key: "simulation", label: "Simulation" },
+        ] as const).map((opt) => (
+          <button
+            key={opt.key}
+            type="button"
+            onClick={() => toggleMode(opt.key)}
+            className={cn(
+              "flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+              practiceMode === opt.key
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
       {/* Random Case */}
@@ -166,7 +161,7 @@ export default function PracticeLibraryPage() {
                       </p>
                     )}
                   </div>
-                  {practiceMode === "full" && (
+                  {practiceMode !== "differential" && (
                     <div className="flex items-center gap-1.5 shrink-0">
                       {c.body_system && (
                         <Badge variant="secondary" className="text-xs">

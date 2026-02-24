@@ -15,6 +15,7 @@ import { DdxRanking } from "@/components/ddx-ranking";
 import { FeedbackNarrative } from "@/components/feedback-narrative";
 import { JourneyTimeline } from "@/components/journey-timeline";
 import type { PracticeEvent } from "@/components/journey-timeline";
+import { SimulationFlow } from "@/components/simulation-flow";
 import {
   Send,
   CheckCircle,
@@ -42,7 +43,7 @@ export default function PracticeCasePage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<PracticeFeedback | null>(null);
-  const [practiceMode, setPracticeMode] = useState<"differential" | "full">("differential");
+  const [practiceMode, setPracticeMode] = useState<"differential" | "full" | "simulation">("differential");
   const [listView, setListView] = useState<"detail" | "rank">("detail");
   const [showCaseDetails, setShowCaseDetails] = useState(false);
   const [practiceEvents, setPracticeEvents] = useState<PracticeEvent[]>([]);
@@ -75,7 +76,7 @@ export default function PracticeCasePage() {
   // Load mode from localStorage
   useEffect(() => {
     const savedMode = localStorage.getItem("practice-mode");
-    if (savedMode === "full") setPracticeMode("full");
+    if (savedMode === "full" || savedMode === "simulation") setPracticeMode(savedMode);
   }, []);
 
   // Load from localStorage on mount
@@ -228,6 +229,22 @@ export default function PracticeCasePage() {
             <p className="text-sm text-muted-foreground">Case not found.</p>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Simulation mode renders a completely different flow
+  if (practiceMode === "simulation") {
+    return (
+      <div className="p-4 space-y-4 pb-8">
+        <Link
+          href="/practice"
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Try a Case
+        </Link>
+        <SimulationFlow practiceCase={practiceCase} practiceId={practiceId} />
       </div>
     );
   }
