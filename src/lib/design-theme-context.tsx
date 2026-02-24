@@ -25,20 +25,7 @@ const DesignThemeContext = createContext<DesignThemeContextValue>({
 
 const STORAGE_KEY = "fcm-design-theme";
 const STORAGE_ID_KEY = "fcm-design-theme-id";
-
-// Color token → CSS custom property mapping
-const COLOR_TOKEN_TO_CSS: Record<string, string[]> = {
-  primary: ["--primary"],
-  background: ["--background"],
-  foreground: ["--foreground"],
-  card: ["--card"],
-  card_foreground: ["--card-foreground"],
-  border: ["--border"],
-  muted: ["--muted"],
-  muted_foreground: ["--muted-foreground"],
-  sidebar: ["--sidebar"],
-  radius: ["--radius"],
-};
+const STYLE_ID = "design-theme-overrides";
 
 // Shadow presets
 const SHADOW_VALUES: Record<string, string> = {
@@ -48,14 +35,82 @@ const SHADOW_VALUES: Record<string, string> = {
   lg: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
 };
 
-// Density → root font-size (rem-based layout scales proportionally)
+// Density → root font-size
 const DENSITY_SIZES: Record<string, string> = {
   compact: "14px",
   default: "16px",
   spacious: "18px",
 };
 
-// Google Fonts we support (body + mono pairings)
+// --- Color utilities ---
+
+function hexToHsl(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16) / 255;
+  const g = parseInt(h.substring(2, 4), 16) / 255;
+  const b = parseInt(h.substring(4, 6), 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+
+  if (max === min) return [0, 0, l * 100];
+
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let hue = 0;
+  if (max === r) hue = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) hue = ((b - r) / d + 2) / 6;
+  else hue = ((r - g) / d + 4) / 6;
+
+  return [hue * 360, s * 100, l * 100];
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  const s1 = s / 100;
+  const l1 = l / 100;
+  const c = (1 - Math.abs(2 * l1 - 1)) * s1;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l1 - c / 2;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) { r = c; g = x; }
+  else if (h < 120) { r = x; g = c; }
+  else if (h < 180) { g = c; b = x; }
+  else if (h < 240) { g = x; b = c; }
+  else if (h < 300) { r = x; b = c; }
+  else { r = c; b = x; }
+  const toHex = (v: number) =>
+    Math.round((v + m) * 255).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function clamp(min: number, val: number, max: number) {
+  return Math.min(max, Math.max(min, val));
+}
+
+type ColorRole = "bg" | "fg" | "border" | "primary";
+
+function toDark(hex: string, role: ColorRole): string {
+  if (!hex || !hex.startsWith("#") || hex.length < 7) return hex;
+  const [h, s, l] = hexToHsl(hex);
+  switch (role) {
+    case "bg":
+      // Light backgrounds → dark backgrounds
+      return hslToHex(h, clamp(3, s * 0.7, 30), clamp(7, 100 - l * 0.92, 16));
+    case "fg":
+      // Dark foregrounds → light foregrounds
+      return hslToHex(h, clamp(2, s * 0.6, 20), clamp(88, 100 - l * 0.85, 97));
+    case "border":
+      // Light borders → dark borders
+      return hslToHex(h, clamp(3, s * 0.5, 20), clamp(20, 100 - l * 0.72, 32));
+    case "primary":
+      // Lighten primary for dark background visibility
+      return hslToHex(h, clamp(30, s, 90), clamp(50, l + 15, 72));
+  }
+}
+
+// --- Google Fonts loading ---
+
 const FONT_LINK_CACHE = new Set<string>();
 
 function loadGoogleFont(fontName: string) {
@@ -69,54 +124,114 @@ function loadGoogleFont(fontName: string) {
   document.head.appendChild(link);
 }
 
-function applyTokens(tokens: DesignTokens) {
-  const root = document.documentElement;
+// --- Apply / clear tokens via <style> injection ---
 
-  // Color tokens
-  for (const [key, cssVars] of Object.entries(COLOR_TOKEN_TO_CSS)) {
-    const value = tokens[key as keyof DesignTokens];
-    if (value) {
-      for (const cssVar of cssVars) {
-        root.style.setProperty(cssVar, value as string);
-      }
-    }
-  }
+function buildStyleSheet(tokens: DesignTokens): string {
+  // Light mode colors
+  const lightVars = [
+    `--primary: ${tokens.primary}`,
+    `--background: ${tokens.background}`,
+    `--foreground: ${tokens.foreground}`,
+    `--card: ${tokens.card}`,
+    `--card-foreground: ${tokens.card_foreground}`,
+    `--border: ${tokens.border}`,
+    `--muted: ${tokens.muted}`,
+    `--muted-foreground: ${tokens.muted_foreground}`,
+    `--sidebar: ${tokens.sidebar}`,
+    `--radius: ${tokens.radius}`,
+    // Derived
+    `--popover: ${tokens.card}`,
+    `--popover-foreground: ${tokens.card_foreground}`,
+    `--input: ${tokens.border}`,
+    `--secondary: ${tokens.muted}`,
+    `--secondary-foreground: ${tokens.foreground}`,
+    `--sidebar-foreground: ${tokens.foreground}`,
+    `--sidebar-border: ${tokens.border}`,
+  ];
 
-  // Derived color variables
-  root.style.setProperty("--popover", tokens.card);
-  root.style.setProperty("--popover-foreground", tokens.card_foreground);
-  root.style.setProperty("--input", tokens.border);
-  root.style.setProperty("--secondary", tokens.muted);
-  root.style.setProperty("--secondary-foreground", tokens.foreground);
-  root.style.setProperty("--sidebar-foreground", tokens.foreground);
-  root.style.setProperty("--sidebar-border", tokens.border);
+  // Dark mode counterparts
+  const darkPrimary = toDark(tokens.primary, "primary");
+  const darkBg = toDark(tokens.background, "bg");
+  const darkFg = toDark(tokens.foreground, "fg");
+  const darkCard = toDark(tokens.card, "bg");
+  const darkCardFg = toDark(tokens.card_foreground, "fg");
+  const darkBorder = toDark(tokens.border, "border");
+  const darkMuted = toDark(tokens.muted, "bg");
+  const darkMutedFg = toDark(tokens.muted_foreground, "fg");
+  const darkSidebar = toDark(tokens.sidebar, "bg");
+
+  const darkVars = [
+    `--primary: ${darkPrimary}`,
+    `--primary-foreground: ${darkBg}`,
+    `--background: ${darkBg}`,
+    `--foreground: ${darkFg}`,
+    `--card: ${darkCard}`,
+    `--card-foreground: ${darkCardFg}`,
+    `--border: ${darkBorder}`,
+    `--muted: ${darkMuted}`,
+    `--muted-foreground: ${darkMutedFg}`,
+    `--sidebar: ${darkSidebar}`,
+    `--radius: ${tokens.radius}`,
+    // Derived
+    `--popover: ${darkCard}`,
+    `--popover-foreground: ${darkCardFg}`,
+    `--input: ${darkBorder}`,
+    `--secondary: ${darkMuted}`,
+    `--secondary-foreground: ${darkFg}`,
+    `--sidebar-foreground: ${darkFg}`,
+    `--sidebar-border: ${darkBorder}`,
+    `--sidebar-primary: ${darkPrimary}`,
+    `--sidebar-primary-foreground: ${darkBg}`,
+  ];
+
+  // Shadow + border width (same in both modes)
+  const shadow = tokens.shadow && SHADOW_VALUES[tokens.shadow]
+    ? SHADOW_VALUES[tokens.shadow]
+    : SHADOW_VALUES.sm;
+  const borderWidth = tokens.border_width ?? "1";
+  const sharedVars = [
+    `--card-shadow: ${shadow}`,
+    `--card-border-width: ${borderWidth}px`,
+  ];
 
   // Font
+  const fontVars: string[] = [];
   if (tokens.font_body) {
-    loadGoogleFont(tokens.font_body);
-    root.style.setProperty("--font-sans", `"${tokens.font_body}", sans-serif`);
+    fontVars.push(`--font-sans: "${tokens.font_body}", sans-serif`);
   }
   if (tokens.font_mono) {
-    loadGoogleFont(tokens.font_mono);
-    root.style.setProperty("--font-mono", `"${tokens.font_mono}", monospace`);
+    fontVars.push(`--font-mono: "${tokens.font_mono}", monospace`);
   }
 
-  // Shadow
-  if (tokens.shadow && SHADOW_VALUES[tokens.shadow]) {
-    root.style.setProperty("--card-shadow", SHADOW_VALUES[tokens.shadow]);
-  }
+  return [
+    `:root { ${[...lightVars, ...sharedVars, ...fontVars].join("; ")}; }`,
+    `.dark { ${darkVars.join("; ")}; }`,
+  ].join("\n");
+}
 
-  // Border width
-  if (tokens.border_width) {
-    root.style.setProperty("--card-border-width", `${tokens.border_width}px`);
-  }
+function applyTokens(tokens: DesignTokens) {
+  // Load fonts
+  if (tokens.font_body) loadGoogleFont(tokens.font_body);
+  if (tokens.font_mono) loadGoogleFont(tokens.font_mono);
 
-  // Density (scales all rem-based spacing)
+  // Inject or update <style> tag
+  let styleEl = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = STYLE_ID;
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = buildStyleSheet(tokens);
+
+  // Density (root font-size — must be inline to override browser default)
+  const root = document.documentElement;
   if (tokens.density && DENSITY_SIZES[tokens.density]) {
     root.style.fontSize = DENSITY_SIZES[tokens.density];
+  } else {
+    root.style.removeProperty("font-size");
   }
 
-  // Component styles (via data attributes for CSS targeting)
+  // Component styles via data attributes
   if (tokens.button_style && tokens.button_style !== "default") {
     root.setAttribute("data-button-style", tokens.button_style);
   } else {
@@ -130,24 +245,12 @@ function applyTokens(tokens: DesignTokens) {
 }
 
 function clearTokens() {
+  // Remove injected style tag
+  const styleEl = document.getElementById(STYLE_ID);
+  if (styleEl) styleEl.remove();
+
+  // Clear inline overrides
   const root = document.documentElement;
-  const allVars = [
-    ...Object.values(COLOR_TOKEN_TO_CSS).flat(),
-    "--popover",
-    "--popover-foreground",
-    "--input",
-    "--secondary",
-    "--secondary-foreground",
-    "--sidebar-foreground",
-    "--sidebar-border",
-    "--font-sans",
-    "--font-mono",
-    "--card-shadow",
-    "--card-border-width",
-  ];
-  for (const cssVar of allVars) {
-    root.style.removeProperty(cssVar);
-  }
   root.style.removeProperty("font-size");
   root.removeAttribute("data-button-style");
   root.removeAttribute("data-card-style");
