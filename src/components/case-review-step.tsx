@@ -35,9 +35,19 @@ function checkAbnormal(label: string, value: string): boolean {
   if (key.includes("respiratory")) return num > 20;
   if (key.includes("spo2") || key.includes("oxygen")) return num < 95;
   if (key.includes("temperature") || key.includes("temp")) {
-    // Handle both C and F
-    if (value.includes("°F") || value.includes("F")) return num > 100.4 || num < 96.8;
-    return num > 38 || num < 36;
+    // Extract Celsius value (appears first in "36.6°C (97.9°F)" format)
+    const celsiusMatch = value.match(/([\d.]+)\s*°?C/);
+    if (celsiusMatch) {
+      const c = parseFloat(celsiusMatch[1]);
+      return c > 38 || c < 36;
+    }
+    // Fallback: extract Fahrenheit
+    const fahrenheitMatch = value.match(/([\d.]+)\s*°?F/);
+    if (fahrenheitMatch) {
+      const f = parseFloat(fahrenheitMatch[1]);
+      return f > 100.4 || f < 96.8;
+    }
+    return false;
   }
   if (key.includes("blood pressure") || key.includes("bp")) {
     // Extract systolic
