@@ -66,6 +66,7 @@ npx tsx scripts/import-uva-cases.ts <dir> # Parse UVA case files → SQL INSERT 
 - **v7** (Feb 23): OSCE expansion + Team INOVA design pattern integration — DDx drag-drop ranking (DdxRanking), confidence calibration chart (ConfidenceCalibration), decision journey timeline (JourneyTimeline), OSCE case browser with search/filter, structured OSCE rubric scoring (OsceRubric), OSCE history page (/osce/history), OSCE unhidden in nav, practice event logging (fcm_practice_events)
 - **v7.1** (Feb 24): Essential/Simulation toggle — 3-way practice mode (Essential, Full Case, Simulation). Simulation mode adds connected 4-step flow: Case Review (vitals grid + presentation) → Gather (free-text H&P input + AI semantic matching via /api/match-elements) → Differential (DDx builder with ranking + confidence + reasoning) → Debrief Dashboard (summary, H&P annotated reveal, DDx evolution snapshots, confidence calibration, journey timeline, expert reasoning, teaching concepts). New components: SimulationFlow, SimulationProgress, CaseReviewStep, GatherStep, DebriefDashboard, DdxEvolution. Extended /api/practice-feedback for enriched simulation debrief.
 - **v8** (Feb 24): Design Lab — AI-powered theme extraction. Upload screenshots (Mobbin, Dribbble, Maze), paste image URLs, or pick presets. Claude Vision extracts design tokens (colors, radius, mood). Tokens override CSS custom properties live across the entire app. Save/name/share themes with classmates. New components: ThemeExtractor, ThemePreview, ThemeGallery, ThemeCard. New context: DesignThemeProvider (persists in localStorage). New API routes: /api/extract-theme (Claude Vision), /api/themes (CRUD). New DB table: fcm_themes.
+- **Demo polish** (Feb 25): Presenter mode fixes (infinite spinner, case-sensitivity bug in missed diagnoses, error handling), dashboard API UUID validation, simulation/gather step API response validation, positive affirmation banner on feedback page. Demo seed data: `supabase/seed-demo-submissions.sql`.
 
 ## Design Lab Architecture
 - `src/app/(student)/design-lab/page.tsx` — Main Design Lab page (two-panel: extractor + gallery)
@@ -87,6 +88,23 @@ npx tsx scripts/import-uva-cases.ts <dir> # Parse UVA case files → SQL INSERT 
 - `src/components/ddx-evolution.tsx` — DDx snapshot comparison display
 - Simulation state persisted in localStorage key `sim-{practiceId}`
 - Step 3 reuses existing DiagnosisInput, DiagnosisRow, DdxRanking
+
+## Feedback Page Architecture
+- Positive affirmation banner (green, adaptive message based on differential breadth + VINDICATE coverage + can't-miss catches)
+- AI narrative bullets (Strength/Consider/Can't-miss categories via FeedbackNarrative component)
+- VINDICATE coverage grid (3×3, with mapped diagnoses per category)
+- Tiered differential (Most Likely → Moderate → Less Likely → Unlikely Important)
+- Common/Can't-Miss stat boxes (two-column count grid)
+- Topics for discussion (student voting, `[TOPIC VOTE]` prefix in fcm_notes)
+- Expert differential (Phase 2 toggle, by tier with StatPearls links + teaching points)
+- Post-session takeaway capture (only visible after session date)
+
+## Demo
+- **Case UUIDs:** Chest Pain `fd4f4dda-88e5-454d-84ef-4fc0186c03c9`, GI `f016e9bd-32ac-4a8f-b597-2aadd49fbf5c`, MSK `9274639b-7675-4ead-85ee-0922e1b57882`
+- **Presenter mode:** `/present?case_id=<uuid>` — requires UUID, not string case_id
+- **Demo seed data:** `supabase/seed-demo-submissions.sql` (5 submissions + sentiments for chest pain case)
+- **Real student data:** Chest pain (5 submitted), GI (5 submitted) from actual course use
+- **Offline fallback:** `?demo=true` → Try a Case → Simulation mode works with zero DB calls
 
 ## Commit Style
 `type: description` (feat:, fix:, chore:, docs:)
