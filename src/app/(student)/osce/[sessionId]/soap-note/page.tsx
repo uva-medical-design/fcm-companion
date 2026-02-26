@@ -1,554 +1,434 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, use } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useUser } from "@/lib/user-context";
-import { useRouter } from "next/navigation";
-import { PRACTICE_CASES } from "@/data/practice-cases";
-import type { PracticeCase } from "@/types";
+import { useOsceAutosave } from "@/lib/use-osce-autosave";
 import type {
   OsceSession,
-  SoapNoteData,
+  DoorPrepData,
   RevisedDiagnosis,
-} from "@/types/osce";
+  SoapNoteData,
+  SoapContext,
+} from "@/types";
+import { OsceProgress } from "@/components/osce-progress";
+import { DiagnosisInput } from "@/components/diagnosis-input";
+import { RevisedDiagnosisRow } from "@/components/revised-diagnosis-row";
+import { extractFindings } from "@/components/evidence-mapper";
+import { HighlightableText } from "@/components/highlightable-text";
+import type { Annotation, LinkedFinding } from "@/components/highlightable-text";
+import { InstructionBanner } from "@/components/instruction-banner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { DiagnosisInput } from "@/components/diagnosis-input";
-import { ConfidenceRating } from "@/components/confidence-rating";
-import { OsceProgress } from "@/components/osce-progress";
+import { OsceChatPanel } from "@/components/osce-chat-panel";
+import type { OsceChatSessionContext } from "@/components/osce-chat-panel";
 import {
   Loader2,
-  ArrowLeft,
-  Plus,
-  X,
-  ChevronDown,
-  ChevronUp,
+  ArrowRight,
   AlertCircle,
-  Stethoscope,
+  RotateCcw,
   Eye,
-  FileText,
+  Stethoscope,
+  ClipboardCheck,
 } from "lucide-react";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
+/** Color palette for diagnosis-evidence linking */
+const LINK_COLORS = [
+  "#3b82f6", // blue
+  "#10b981", // emerald
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#8b5cf6", // violet
+  "#ec4899", // pink
+  "#06b6d4", // cyan
+  "#f97316", // orange
+  "#6366f1", // indigo
+  "#14b8a6", // teal
+];
 
-export default function SoapNotePage({
-  params,
-}: {
-  params: Promise<{ sessionId: string }>;
-}) {
-  const { sessionId } = use(params);
+export default function SoapNotePage() {
   const { user } = useUser();
   const router = useRouter();
+  const params = useParams();
+  const sessionId = params.sessionId as string;
+
   const [session, setSession] = useState<OsceSession | null>(null);
-  const [practiceCase, setPracticeCase] = useState<PracticeCase | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const readOnly = session?.status === "completed";
+  const [soapContext, setSoapContext] = useState<SoapContext | null>(null);
+  const [contextLoading, setContextLoading] = useState(true);
+  const [contextError, setContextError] = useState(false);
   const [diagnoses, setDiagnoses] = useState<RevisedDiagnosis[]>([]);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [subjAnnotations, setSubjAnnotations] = useState<Annotation[]>([]);
+  const [objAnnotations, setObjAnnotations] = useState<Annotation[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  // Click-selected diagnosis for evidence linking (persists until toggled off)
+  const [activeDiagnosisIndex, setActiveDiagnosisIndex] = useState<number | null>(null);
 
-  const isReadOnly = session?.status === "completed";
+  const diagnosisRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
-  // Extract S/O from practice case
-  function extractSubjectiveObjective(pc: PracticeCase): {
-    subjective: string;
-    objective: string;
-  } {
-    const exam = pc.full_case_data?.OSCE_Examination as Record<
-      string,
-      unknown
-    > | null;
-    if (!exam) return { subjective: "", objective: "" };
-
-    const patientActor = exam.Patient_Actor as Record<string, unknown> | null;
-    const peFindings = exam.Physical_Examination_Findings as Record<
-      string,
-      unknown
-    > | null;
-    const testResults = exam.Test_Results as Record<string, unknown> | null;
-
-    // Build subjective from patient history
-    let subjective = "";
-    if (patientActor) {
-      const parts: string[] = [];
-      if (patientActor.History) parts.push(String(patientActor.History));
-      if (patientActor.Past_Medical_History)
-        parts.push(`PMH: ${patientActor.Past_Medical_History}`);
-      if (patientActor.Social_History)
-        parts.push(`Social: ${patientActor.Social_History}`);
-      if (patientActor.Review_of_Systems)
-        parts.push(`ROS: ${patientActor.Review_of_Systems}`);
-
-      const symptoms = patientActor.Symptoms as Record<
-        string,
-        unknown
-      > | null;
-      if (symptoms?.Secondary_Symptoms) {
-        const sec = symptoms.Secondary_Symptoms as string[];
-        if (sec.length > 0) {
-          parts.push(`Associated symptoms: ${sec.join(", ")}`);
-        }
-      }
-      subjective = parts.join("\n\n");
-    }
-
-    // Build objective from PE findings + test results
-    let objective = "";
-    const objParts: string[] = [];
-
-    if (peFindings) {
-      function flattenObj(
-        obj: Record<string, unknown>,
-        prefix = ""
-      ): string[] {
-        const lines: string[] = [];
-        for (const [key, val] of Object.entries(obj)) {
-          const label = key.replace(/_/g, " ");
-          if (typeof val === "string") {
-            lines.push(`${prefix}${label}: ${val}`);
-          } else if (typeof val === "object" && val !== null) {
-            lines.push(
-              ...flattenObj(val as Record<string, unknown>, `${label} - `)
-            );
-          }
-        }
-        return lines;
-      }
-      // Skip Vital_Signs since already shown on door card
-      const peCopy = { ...peFindings };
-      delete peCopy.Vital_Signs;
-      const peLines = flattenObj(peCopy);
-      if (peLines.length > 0) {
-        objParts.push("Physical Exam:\n" + peLines.join("\n"));
-      }
-    }
-
-    if (testResults) {
-      function flattenTests(obj: Record<string, unknown>): string[] {
-        const lines: string[] = [];
-        for (const [key, val] of Object.entries(obj)) {
-          const label = key.replace(/_/g, " ");
-          if (typeof val === "string") {
-            lines.push(`${label}: ${val}`);
-          } else if (typeof val === "object" && val !== null) {
-            const inner = val as Record<string, unknown>;
-            if (inner.Findings) {
-              lines.push(`${label}: ${inner.Findings}`);
-            } else if (inner.Comments) {
-              lines.push(`${label}: ${inner.Comments}`);
-            } else {
-              for (const [k2, v2] of Object.entries(inner)) {
-                if (typeof v2 === "string") {
-                  lines.push(`${label} - ${k2.replace(/_/g, " ")}: ${v2}`);
-                } else if (typeof v2 === "object" && v2 !== null) {
-                  const inner2 = v2 as Record<string, unknown>;
-                  if (inner2.Findings) {
-                    lines.push(
-                      `${label} - ${k2.replace(/_/g, " ")}: ${inner2.Findings}`
-                    );
-                  }
-                }
-              }
-            }
-          }
-        }
-        return lines;
-      }
-      const testLines = flattenTests(testResults);
-      if (testLines.length > 0) {
-        objParts.push("Test Results:\n" + testLines.join("\n"));
-      }
-    }
-
-    objective = objParts.join("\n\n");
-
-    return { subjective, objective };
-  }
-
-  // Fetch session
-  useEffect(() => {
-    async function fetchSession() {
-      try {
-        const res = await fetch(`/api/osce-session/${sessionId}`);
-        const data = await res.json();
-        if (data.session) {
-          const s = data.session as OsceSession;
-          setSession(s);
-
-          // Load practice case
-          if (s.practice_case_id) {
-            const pc = PRACTICE_CASES.find(
-              (c) => c.id === s.practice_case_id
-            );
-            if (pc) setPracticeCase(pc);
-          }
-
-          // Load existing SOAP note diagnoses or seed from door prep
-          if (s.soap_note?.diagnoses) {
-            setDiagnoses(s.soap_note.diagnoses);
-          } else if (s.door_prep?.diagnoses) {
-            // Pre-populate from door prep
-            const seeded: RevisedDiagnosis[] = s.door_prep.diagnoses.map(
-              (d) => ({
-                id: d.id,
-                diagnosis: d.diagnosis,
-                supportingEvidence: [],
-                diagnosticPlan: [],
-                therapeuticPlan: [],
-                confidence: d.confidence,
-                sort_order: d.sort_order,
-              })
-            );
-            setDiagnoses(seeded);
-          }
-
-          // Redirect if not yet ready for SOAP
-          if (s.status === "door_prep") {
-            router.push(`/osce/${sessionId}/door-prep`);
-            return;
-          }
-        } else {
-          setError("Session not found");
-        }
-      } catch {
-        setError("Failed to load session");
-      }
-      setLoading(false);
-    }
-    fetchSession();
-  }, [sessionId, router]);
-
-  // Autosave
-  const autosave = useCallback(
-    (updatedDiagnoses: RevisedDiagnosis[]) => {
-      if (isReadOnly) return;
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(async () => {
-        if (!practiceCase) return;
-        const { subjective, objective } =
-          extractSubjectiveObjective(practiceCase);
-        try {
-          await fetch(`/api/osce-session/${sessionId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              soap_note: { subjective, objective, diagnoses: updatedDiagnoses },
-            }),
-          });
-        } catch (err) {
-          console.error("Autosave failed:", err);
-        }
-      }, 500);
-    },
-    [sessionId, isReadOnly, practiceCase]
+  const soapData: SoapNoteData = {
+    subjective_review: "",
+    objective_review: "",
+    diagnoses,
+  };
+  const { saveStatus } = useOsceAutosave(
+    sessionId,
+    "soap_note",
+    soapData,
+    !readOnly && diagnoses.length > 0
   );
 
+  // Extract findings from S/O for evidence mapper
+  const findings = useMemo(() => {
+    if (!soapContext) return [];
+    return extractFindings(soapContext.subjective, soapContext.objective);
+  }, [soapContext]);
+
+  // Build linked findings for the active diagnosis (color-coded underlines)
+  const linkedFindings = useMemo((): LinkedFinding[] => {
+    if (activeDiagnosisIndex === null || !diagnoses[activeDiagnosisIndex]) return [];
+    const dx = diagnoses[activeDiagnosisIndex];
+    const color = LINK_COLORS[activeDiagnosisIndex % LINK_COLORS.length];
+    return dx.evidence.map((text) => ({ text, color }));
+  }, [activeDiagnosisIndex, diagnoses]);
+
+  // Current evidence for the active diagnosis (for highlight state)
+  const activeEvidence = useMemo((): string[] => {
+    if (activeDiagnosisIndex === null || !diagnoses[activeDiagnosisIndex]) return [];
+    return diagnoses[activeDiagnosisIndex].evidence;
+  }, [activeDiagnosisIndex, diagnoses]);
+
   useEffect(() => {
-    if (!isReadOnly && diagnoses.length > 0) {
-      autosave(diagnoses);
+    async function load() {
+      try {
+        const res = await fetch(`/api/osce-session/${sessionId}`);
+        if (!res.ok) {
+          router.push("/osce");
+          return;
+        }
+        const data = await res.json();
+        const sess: OsceSession = data.session;
+        setSession(sess);
+
+        if (sess.status === "door_prep") {
+          router.replace(`/osce/${sessionId}/door-prep`);
+          return;
+        }
+
+        if (sess.soap_note) {
+          const saved = sess.soap_note as SoapNoteData;
+          if (saved.diagnoses?.length > 0) {
+            setDiagnoses(saved.diagnoses);
+          }
+        } else if (sess.door_prep) {
+          const doorPrep = sess.door_prep as DoorPrepData;
+          if (doorPrep.diagnoses?.length > 0) {
+            setDiagnoses(
+              doorPrep.diagnoses.map((d, i) => ({
+                diagnosis: d.diagnosis,
+                evidence: [],
+                assessment: "",
+                diagnostic_plan: [],
+                therapeutic_plan: [],
+                sort_order: i,
+              }))
+            );
+          }
+        }
+
+        setLoading(false);
+        fetchSoapContext();
+      } catch {
+        router.push("/osce");
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [diagnoses, autosave, isReadOnly]);
 
-  function addDiagnosis(name: string) {
-    const newDx: RevisedDiagnosis = {
-      id: crypto.randomUUID(),
-      diagnosis: name,
-      supportingEvidence: [],
-      diagnosticPlan: [],
-      therapeuticPlan: [],
-      confidence: 3,
-      sort_order: diagnoses.length,
-    };
-    setDiagnoses((prev) => [...prev, newDx]);
-    setExpandedId(newDx.id);
-  }
+    load();
+  }, [sessionId, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function removeDiagnosis(id: string) {
-    setDiagnoses((prev) =>
-      prev.filter((d) => d.id !== id).map((d, i) => ({ ...d, sort_order: i }))
-    );
-    if (expandedId === id) setExpandedId(null);
-  }
-
-  function updateDiagnosis(id: string, updates: Partial<RevisedDiagnosis>) {
-    setDiagnoses((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, ...updates } : d))
-    );
-  }
-
-  function moveDiagnosis(id: string, direction: "up" | "down") {
-    setDiagnoses((prev) => {
-      const idx = prev.findIndex((d) => d.id === id);
-      if (idx < 0) return prev;
-      const newIdx = direction === "up" ? idx - 1 : idx + 1;
-      if (newIdx < 0 || newIdx >= prev.length) return prev;
-      const newArr = [...prev];
-      [newArr[idx], newArr[newIdx]] = [newArr[newIdx], newArr[idx]];
-      return newArr.map((d, i) => ({ ...d, sort_order: i }));
-    });
-  }
-
-  function addListItem(
-    id: string,
-    field: "supportingEvidence" | "diagnosticPlan" | "therapeuticPlan",
-    value: string
-  ) {
-    if (!value.trim()) return;
-    setDiagnoses((prev) =>
-      prev.map((d) =>
-        d.id === id ? { ...d, [field]: [...d[field], value.trim()] } : d
-      )
-    );
-  }
-
-  function removeListItem(
-    id: string,
-    field: "supportingEvidence" | "diagnosticPlan" | "therapeuticPlan",
-    index: number
-  ) {
-    setDiagnoses((prev) =>
-      prev.map((d) =>
-        d.id === id
-          ? { ...d, [field]: d[field].filter((_, i) => i !== index) }
-          : d
-      )
-    );
-  }
-
-  async function submitSoapNote() {
-    if (diagnoses.length === 0 || submitting || !practiceCase) return;
-    setSubmitting(true);
+  async function fetchSoapContext() {
+    setContextLoading(true);
+    setContextError(false);
     try {
-      const { subjective, objective } =
-        extractSubjectiveObjective(practiceCase);
-      const now = new Date().toISOString();
-
-      // Save SOAP note
-      await fetch(`/api/osce-session/${sessionId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          soap_note: { subjective, objective, diagnoses },
-          soap_submitted_at: now,
-        }),
-      });
-
-      // Generate feedback
-      const feedbackRes = await fetch("/api/osce-feedback", {
+      const ctxRes = await fetch("/api/osce-soap-context", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: sessionId }),
       });
-
-      if (feedbackRes.ok) {
-        router.push(`/osce/${sessionId}/feedback`);
+      if (ctxRes.ok) {
+        const ctx = await ctxRes.json();
+        setSoapContext(ctx);
       } else {
-        setError(
-          "Feedback generation failed. Your work has been saved — you can try again."
-        );
+        setContextError(true);
       }
     } catch {
-      setError("Failed to submit. Please try again.");
+      setContextError(true);
+    } finally {
+      setContextLoading(false);
     }
-    setSubmitting(false);
+  }
+
+  const addDiagnosis = useCallback((name: string) => {
+    setDiagnoses((prev) => [
+      ...prev,
+      {
+        diagnosis: name,
+        evidence: [],
+        assessment: "",
+        diagnostic_plan: [],
+        therapeutic_plan: [],
+        sort_order: prev.length,
+      },
+    ]);
+  }, []);
+
+  function removeDiagnosis(i: number) {
+    setDiagnoses((prev) => prev.filter((_, idx) => idx !== i));
+    if (activeDiagnosisIndex === i) setActiveDiagnosisIndex(null);
+    else if (activeDiagnosisIndex !== null && activeDiagnosisIndex > i) {
+      setActiveDiagnosisIndex(activeDiagnosisIndex - 1);
+    }
+  }
+
+  function moveDiagnosis(i: number, direction: "up" | "down") {
+    setDiagnoses((prev) => {
+      const arr = [...prev];
+      const j = direction === "up" ? i - 1 : i + 1;
+      if (j < 0 || j >= arr.length) return prev;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      return arr.map((d, idx) => ({ ...d, sort_order: idx }));
+    });
+  }
+
+  function updateDiagnosis(i: number, updated: RevisedDiagnosis) {
+    setDiagnoses((prev) => prev.map((d, idx) => (idx === i ? updated : d)));
+  }
+
+  /** When a finding in S/O text is clicked, toggle it as evidence on the active diagnosis */
+  function handleFindingToggle(findingText: string) {
+    if (activeDiagnosisIndex === null || readOnly) return;
+    const dx = diagnoses[activeDiagnosisIndex];
+    if (!dx) return;
+
+    const current = dx.evidence;
+    if (current.includes(findingText)) {
+      updateDiagnosis(activeDiagnosisIndex, {
+        ...dx,
+        evidence: current.filter((f) => f !== findingText),
+      });
+    } else {
+      updateDiagnosis(activeDiagnosisIndex, {
+        ...dx,
+        evidence: [...current, findingText],
+      });
+    }
+  }
+
+  /** When a linked finding is clicked and no diagnosis is actively selected, scroll to its diagnosis */
+  function handleLinkedFindingClick(findingText: string) {
+    const idx = diagnoses.findIndex((d) =>
+      d.evidence.some((e) => e.toLowerCase() === findingText.toLowerCase())
+    );
+    if (idx !== -1) {
+      setActiveDiagnosisIndex(idx);
+      const el = diagnosisRefs.current.get(idx);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-primary/50");
+        setTimeout(() => el.classList.remove("ring-2", "ring-primary/50"), 1500);
+      }
+    }
+  }
+
+  async function handleSubmit() {
+    if (diagnoses.length === 0 || submitting) return;
+    setSubmitting(true);
+
+    try {
+      const res = await fetch(`/api/osce-session/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          soap_note: { subjective_review: "", objective_review: "", diagnoses },
+          soap_submitted_at: new Date().toISOString(),
+          status: "completed",
+        }),
+      });
+
+      if (res.ok) {
+        router.push(`/osce/${sessionId}/feedback`);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        <Loader2 className="h-5 w-5 animate-spin-slow text-primary" />
       </div>
     );
   }
 
-  if (error || !session) {
-    return (
-      <div className="p-4 space-y-4">
-        <Link
-          href="/osce"
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to OSCE
-        </Link>
-        <Card>
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              {error || "Session not found"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const hasActiveDiagnosis = activeDiagnosisIndex !== null && !readOnly;
 
-  const soData = practiceCase
-    ? extractSubjectiveObjective(practiceCase)
-    : null;
-  const hasExamData = soData && (soData.subjective || soData.objective);
-
-  return (
-    <div className="p-4 space-y-4 max-w-3xl mx-auto">
-      {/* Nav */}
-      <Link
-        href="/osce"
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to OSCE
-      </Link>
-
-      {/* Progress */}
-      <OsceProgress
-        currentStep={session.status}
-        onNavigate={(step) => {
-          if (step === "door_prep") {
-            router.push(`/osce/${sessionId}/door-prep`);
-          }
-        }}
-      />
-
-      {/* Read-only banner */}
-      {isReadOnly && (
-        <div className="flex items-center gap-2 rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-950/20 p-3">
-          <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
-          <p className="text-sm text-blue-700 dark:text-blue-300">
-            Viewing submitted work — read only
-          </p>
+  const soContent = (
+    <>
+      {contextLoading ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground p-4">
+          <Loader2 className="h-4 w-4 animate-spin-slow" />
+          Loading findings...
         </div>
-      )}
-
-      {/* S/O Display */}
-      {hasExamData ? (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Stethoscope className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-medium">
-              Encounter Findings
-            </h2>
+      ) : contextError ? (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            Unable to load subjective findings.
           </div>
-
-          {soData.subjective && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="secondary" className="text-xs">
-                    S — Subjective
-                  </Badge>
-                </div>
-                <p className="text-sm whitespace-pre-line leading-relaxed">
-                  {soData.subjective}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {soData.objective && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="secondary" className="text-xs">
-                    O — Objective
-                  </Badge>
-                </div>
-                <p className="text-sm whitespace-pre-line leading-relaxed">
-                  {soData.objective}
-                </p>
-              </CardContent>
-            </Card>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={fetchSoapContext}
+            className="shrink-0 text-xs"
+          >
+            <RotateCcw className="h-3 w-3 mr-1" />
+            Retry
+          </Button>
         </div>
-      ) : (
-        <Card>
-          <CardContent className="p-4 text-center">
-            <FileText className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              No structured exam data available for this case. Use your
-              clinical judgment to revise your differential below.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      ) : soapContext ? (
+        <div className="space-y-3">
+          <InstructionBanner>
+            {hasActiveDiagnosis
+              ? `Click underlined findings to link them to "${diagnoses[activeDiagnosisIndex!].diagnosis}"`
+              : "Select text to highlight or bold. Open a diagnosis's evidence section to start linking."}
+          </InstructionBanner>
 
-      {/* Revised Differential */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-medium">
-          Revised Differential ({diagnoses.length})
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          Review the encounter findings above. Revise your differential with
-          supporting evidence, diagnostic plans, and therapeutic plans.
-        </p>
-
-        {!isReadOnly && (
-          <DiagnosisInput
-            onAdd={addDiagnosis}
-            existingDiagnoses={diagnoses.map((d) => d.diagnosis)}
-          />
-        )}
-
-        {diagnoses.length === 0 && (
-          <Card>
-            <CardContent className="p-6 text-center text-sm text-muted-foreground">
-              {isReadOnly
-                ? "No diagnoses were submitted."
-                : "Your door prep diagnoses are pre-populated above. Revise them based on the encounter findings."}
+          {/* Subjective Card */}
+          <Card className="border-l-4 border-l-blue-400">
+            <CardContent className="p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4 text-blue-500" />
+                <h4 className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase">
+                  Subjective
+                </h4>
+              </div>
+              <HighlightableText
+                text={soapContext.subjective}
+                annotations={subjAnnotations}
+                onChange={setSubjAnnotations}
+                className="text-sm"
+                linkedFindings={linkedFindings}
+                onFindingClick={handleLinkedFindingClick}
+                clickableFindings={hasActiveDiagnosis ? findings : undefined}
+                onClickableFindingClick={hasActiveDiagnosis ? handleFindingToggle : undefined}
+                selectedEvidence={hasActiveDiagnosis ? activeEvidence : undefined}
+              />
             </CardContent>
           </Card>
-        )}
 
-        {diagnoses.map((dx, idx) => {
-          const isExpanded = isReadOnly
-            ? expandedId === dx.id
-            : true;
+          {/* Objective Card */}
+          <Card className="border-l-4 border-l-teal-400">
+            <CardContent className="p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Stethoscope className="h-4 w-4 text-teal-500" />
+                <h4 className="text-xs font-semibold text-teal-700 dark:text-teal-300 uppercase">
+                  Objective
+                </h4>
+              </div>
+              <HighlightableText
+                text={soapContext.objective}
+                annotations={objAnnotations}
+                onChange={setObjAnnotations}
+                className="text-sm"
+                linkedFindings={linkedFindings}
+                onFindingClick={handleLinkedFindingClick}
+                clickableFindings={hasActiveDiagnosis ? findings : undefined}
+                onClickableFindingClick={hasActiveDiagnosis ? handleFindingToggle : undefined}
+                selectedEvidence={hasActiveDiagnosis ? activeEvidence : undefined}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          No S/O data available for this case.
+        </p>
+      )}
+    </>
+  );
 
+  const diagnosesContent = (
+    <>
+      {/* Instructions (active only) */}
+      {!readOnly && (
+        <InstructionBanner>
+          Revise your differential based on the encounter. For each diagnosis, map
+          supporting evidence, write an assessment, and plan diagnostic workup and
+          treatment.
+        </InstructionBanner>
+      )}
+
+      {/* Add diagnosis (active only) */}
+      {!readOnly && (
+        <DiagnosisInput
+          onAdd={addDiagnosis}
+          existingDiagnoses={diagnoses.map((d) => d.diagnosis)}
+        />
+      )}
+
+      {/* Revised diagnosis rows */}
+      <div className="space-y-3">
+        {diagnoses.map((d, i) => {
+          const isActive = activeDiagnosisIndex === i;
+          const color = LINK_COLORS[i % LINK_COLORS.length];
           return (
-            <SoapDiagnosisCard
-              key={dx.id}
-              dx={dx}
-              index={idx}
-              total={diagnoses.length}
-              isExpanded={isExpanded}
-              isReadOnly={isReadOnly}
-              onToggle={() =>
-                setExpandedId(expandedId === dx.id ? null : dx.id)
-              }
-              onRemove={() => removeDiagnosis(dx.id)}
-              onMoveUp={() => moveDiagnosis(dx.id, "up")}
-              onMoveDown={() => moveDiagnosis(dx.id, "down")}
-              onUpdateConfidence={(c) =>
-                updateDiagnosis(dx.id, { confidence: c })
-              }
-              onAddEvidence={(v) =>
-                addListItem(dx.id, "supportingEvidence", v)
-              }
-              onRemoveEvidence={(i) =>
-                removeListItem(dx.id, "supportingEvidence", i)
-              }
-              onAddDiagPlan={(v) =>
-                addListItem(dx.id, "diagnosticPlan", v)
-              }
-              onRemoveDiagPlan={(i) =>
-                removeListItem(dx.id, "diagnosticPlan", i)
-              }
-              onAddTherapPlan={(v) =>
-                addListItem(dx.id, "therapeuticPlan", v)
-              }
-              onRemoveTherapPlan={(i) =>
-                removeListItem(dx.id, "therapeuticPlan", i)
-              }
-            />
+            <div
+              key={`${d.diagnosis}-${i}`}
+              ref={(el) => {
+                if (el) diagnosisRefs.current.set(i, el);
+                else diagnosisRefs.current.delete(i);
+              }}
+              className="rounded-lg transition-shadow"
+              style={{
+                boxShadow: isActive ? `0 0 0 2px ${color}` : undefined,
+              }}
+            >
+              <RevisedDiagnosisRow
+                diagnosis={d}
+                index={i}
+                total={diagnoses.length}
+                findings={findings}
+                disabled={readOnly}
+                isLinking={isActive}
+                onEvidenceFocus={(idx) => setActiveDiagnosisIndex(idx)}
+                onRemove={removeDiagnosis}
+                onMoveUp={(idx) => moveDiagnosis(idx, "up")}
+                onMoveDown={(idx) => moveDiagnosis(idx, "down")}
+                onUpdate={updateDiagnosis}
+              />
+            </div>
           );
         })}
       </div>
 
-      {/* Submit */}
-      {!isReadOnly && (
+      {/* Save status (active only) */}
+      {!readOnly && saveStatus !== "idle" && (
+        <p className="text-xs text-muted-foreground text-center">
+          {saveStatus === "saving" && "Saving..."}
+          {saveStatus === "saved" && "Saved"}
+          {saveStatus === "error" && "Save failed"}
+        </p>
+      )}
+
+      {/* Submit (active only) */}
+      {!readOnly && (
         <Button
-          onClick={submitSoapNote}
+          onClick={handleSubmit}
           disabled={diagnoses.length === 0 || submitting}
           className="w-full"
           size="lg"
@@ -556,251 +436,68 @@ export default function SoapNotePage({
           {submitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Generating Feedback...
+              Submitting...
             </>
           ) : (
-            "Submit SOAP Note & Get Feedback"
+            <>
+              Submit for Feedback
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </>
           )}
         </Button>
       )}
-    </div>
+    </>
   );
-}
 
-// Sub-component for a single SOAP diagnosis card
-function SoapDiagnosisCard({
-  dx,
-  index,
-  total,
-  isExpanded,
-  isReadOnly,
-  onToggle,
-  onRemove,
-  onMoveUp,
-  onMoveDown,
-  onUpdateConfidence,
-  onAddEvidence,
-  onRemoveEvidence,
-  onAddDiagPlan,
-  onRemoveDiagPlan,
-  onAddTherapPlan,
-  onRemoveTherapPlan,
-}: {
-  dx: RevisedDiagnosis;
-  index: number;
-  total: number;
-  isExpanded: boolean;
-  isReadOnly: boolean;
-  onToggle: () => void;
-  onRemove: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  onUpdateConfidence: (c: number) => void;
-  onAddEvidence: (v: string) => void;
-  onRemoveEvidence: (i: number) => void;
-  onAddDiagPlan: (v: string) => void;
-  onRemoveDiagPlan: (i: number) => void;
-  onAddTherapPlan: (v: string) => void;
-  onRemoveTherapPlan: (i: number) => void;
-}) {
-  const [evidenceInput, setEvidenceInput] = useState("");
-  const [diagPlanInput, setDiagPlanInput] = useState("");
-  const [therapPlanInput, setTherapPlanInput] = useState("");
+  const sessionContext: OsceChatSessionContext = {
+    current_entries: diagnoses.length > 0
+      ? `Revised diagnoses: ${diagnoses.map((d) => d.diagnosis).join(", ")}. ` +
+        `Subjective review: ${soapContext?.subjective?.slice(0, 200) ?? "not yet reviewed"}. ` +
+        `Objective review: ${soapContext?.objective?.slice(0, 200) ?? "not yet reviewed"}.`
+      : "No revised diagnoses entered yet.",
+  };
 
   return (
-    <Card className="py-3">
-      <CardContent className="px-4 py-0 space-y-2">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-2">
-          <button
-            type="button"
-            onClick={onToggle}
-            className="flex items-center gap-2 min-w-0 flex-1 text-left"
-          >
-            <span className="text-xs text-muted-foreground font-medium shrink-0">
-              {index + 1}.
-            </span>
-            <span className="text-sm font-medium truncate">
-              {dx.diagnosis}
-            </span>
-            {isReadOnly && (
-              <ChevronDown
-                className={cn(
-                  "h-3.5 w-3.5 text-muted-foreground transition-transform shrink-0",
-                  isExpanded && "rotate-180"
-                )}
-              />
-            )}
-          </button>
-          {!isReadOnly && (
-            <div className="flex items-center gap-0.5 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onMoveUp}
-                disabled={index === 0}
-                className="h-7 w-7"
-                aria-label="Move up"
-              >
-                <ChevronUp className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onMoveDown}
-                disabled={index === total - 1}
-                className="h-7 w-7"
-                aria-label="Move down"
-              >
-                <ChevronDown className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onRemove}
-                className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                aria-label="Remove diagnosis"
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
-        </div>
+    <div className="flex gap-4 p-4 max-w-7xl mx-auto">
+      <div className="flex-1 min-w-0 space-y-4">
+        <OsceProgress currentPhase="soap_note" sessionId={sessionId} sessionCompleted={readOnly} />
 
-        {isExpanded && (
-          <div className="space-y-3 pt-1">
-            {/* Confidence */}
-            {isReadOnly ? (
-              <div className="text-xs text-muted-foreground">
-                Confidence: {dx.confidence}/5
-              </div>
-            ) : (
-              <ConfidenceRating
-                value={dx.confidence}
-                onChange={onUpdateConfidence}
-              />
-            )}
-
-            {/* Supporting Evidence */}
-            <ListFieldSection
-              label="Supporting Evidence"
-              items={dx.supportingEvidence}
-              inputValue={evidenceInput}
-              setInputValue={setEvidenceInput}
-              onAdd={onAddEvidence}
-              onRemove={onRemoveEvidence}
-              placeholder='e.g., "Patient reports 3-day history of..."'
-              isReadOnly={isReadOnly}
-              badgeColor="bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400"
-            />
-
-            {/* Diagnostic Plan */}
-            <ListFieldSection
-              label="Diagnostic Plan"
-              items={dx.diagnosticPlan}
-              inputValue={diagPlanInput}
-              setInputValue={setDiagPlanInput}
-              onAdd={onAddDiagPlan}
-              onRemove={onRemoveDiagPlan}
-              placeholder="e.g., CBC, CMP, chest X-ray"
-              isReadOnly={isReadOnly}
-              badgeColor="bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
-            />
-
-            {/* Therapeutic Plan */}
-            <ListFieldSection
-              label="Therapeutic Plan"
-              items={dx.therapeuticPlan}
-              inputValue={therapPlanInput}
-              setInputValue={setTherapPlanInput}
-              onAdd={onAddTherapPlan}
-              onRemove={onRemoveTherapPlan}
-              placeholder="e.g., Start metformin 500mg BID"
-              isReadOnly={isReadOnly}
-              badgeColor="bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
-            />
+        {/* Read-only banner or transition message */}
+        {readOnly ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-md px-3 py-2">
+            <Eye className="h-3.5 w-3.5 shrink-0" />
+            Viewing submitted SOAP note — read only
           </div>
+        ) : (
+          <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20">
+            <CardContent className="p-4">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                You&apos;ve completed the patient encounter. Review the findings
+                below, then revise your differential with supporting evidence and
+                management plans.
+              </p>
+            </CardContent>
+          </Card>
         )}
-      </CardContent>
-    </Card>
-  );
-}
 
-// Reusable list field section for evidence/plans
-function ListFieldSection({
-  label,
-  items,
-  inputValue,
-  setInputValue,
-  onAdd,
-  onRemove,
-  placeholder,
-  isReadOnly,
-  badgeColor,
-}: {
-  label: string;
-  items: string[];
-  inputValue: string;
-  setInputValue: (v: string) => void;
-  onAdd: (v: string) => void;
-  onRemove: (i: number) => void;
-  placeholder: string;
-  isReadOnly: boolean;
-  badgeColor: string;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      {items.map((item, i) => (
-        <div
-          key={i}
-          className={cn(
-            "flex items-center gap-2 text-sm rounded-lg px-3 py-1.5",
-            badgeColor
-          )}
-        >
-          <span className="flex-1">{item}</span>
-          {!isReadOnly && (
-            <button
-              type="button"
-              onClick={() => onRemove(i)}
-              className="opacity-60 hover:opacity-100 shrink-0"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          )}
+        {/* Two-column layout on desktop, stacked on mobile */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Left column: S/O (sticky on desktop) */}
+          <div className="md:sticky md:top-4 md:self-start md:max-h-[calc(100dvh-6rem)] md:overflow-y-auto space-y-3">
+            {soContent}
+          </div>
+
+          {/* Right column: Diagnoses */}
+          <div className="space-y-4">
+            {diagnosesContent}
+          </div>
         </div>
-      ))}
-      {!isReadOnly && (
-        <div className="flex gap-2">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && inputValue.trim()) {
-                e.preventDefault();
-                onAdd(inputValue);
-                setInputValue("");
-              }
-            }}
-            placeholder={placeholder}
-            className="text-sm"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (inputValue.trim()) {
-                onAdd(inputValue);
-                setInputValue("");
-              }
-            }}
-            disabled={!inputValue.trim()}
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      )}
+      </div>
+      <OsceChatPanel
+        sessionId={sessionId}
+        phase="soap_note"
+        sessionContext={sessionContext}
+      />
     </div>
   );
 }

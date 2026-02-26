@@ -16,19 +16,13 @@ export async function GET(
       .single();
 
     if (error || !session) {
-      return NextResponse.json(
-        { error: "Session not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
     return NextResponse.json({ session });
   } catch (error) {
     console.error("OSCE session GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch session" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -39,7 +33,6 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-
     const supabase = createServerClient();
 
     // Only allow updating specific fields
@@ -61,7 +54,6 @@ export async function PATCH(
       }
     }
 
-    // Always update updated_at
     allowedFields.updated_at = new Date().toISOString();
 
     const { data: session, error } = await supabase
@@ -72,19 +64,13 @@ export async function PATCH(
       .single();
 
     if (error) {
-      console.error("OSCE session update error:", error);
-      return NextResponse.json(
-        { error: "Failed to update session" },
-        { status: 500 }
-      );
+      console.error("Update OSCE session error:", error);
+      return NextResponse.json({ error: "Failed to update session" }, { status: 500 });
     }
 
     return NextResponse.json({ session });
   } catch (error) {
     console.error("OSCE session PATCH error:", error);
-    return NextResponse.json(
-      { error: "Failed to update session" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

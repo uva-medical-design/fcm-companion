@@ -210,3 +210,20 @@ export interface DesignTheme {
   created_at: string;
   author_name?: string;
 }
+
+// Re-export OSCE types
+export type {
+  OsceSession,
+  DoorPrepDiagnosis,
+  DoorPrepData,
+  RevisedDiagnosis,
+  SoapNoteData,
+  RubricScore,
+  OSCEFeedbackResult,
+  PEManeuverEntry,
+  DiagnosticTestEntry,
+  TherapeuticOptionEntry,
+  SoapContext,
+  CaseRef,
+  ResourceLink,
+} from "./osce";

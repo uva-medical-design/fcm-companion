@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@/lib/supabase";
-import type { OsceSession, OsceFeedbackResult } from "@/types/osce";
+import { compareOscePerformance, buildOsceFeedbackPrompt } from "@/lib/osce-feedback";
+import { PRACTICE_CASES } from "@/data/practice-cases";
+import type {
+  OsceSession,
+  DoorPrepData,
+  SoapNoteData,
+  AnswerKeyEntry,
+  OSCEFeedbackResult,
+  PracticeCase,
+} from "@/types";
 
 const anthropic = new Anthropic();
 
@@ -10,138 +19,136 @@ export async function POST(request: NextRequest) {
     const { session_id } = await request.json();
 
     if (!session_id) {
-      return NextResponse.json(
-        { error: "Missing required field: session_id" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
     }
 
     const supabase = createServerClient();
 
-    // Fetch the session
-    const { data: session, error: sessionError } = await supabase
+    // Fetch session
+    const { data: session, error: sessError } = await supabase
       .from("fcm_osce_sessions")
       .select("*")
       .eq("id", session_id)
       .single();
 
-    if (sessionError || !session) {
-      return NextResponse.json(
-        { error: "Session not found" },
-        { status: 404 }
-      );
+    if (sessError || !session) {
+      return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
-    const typedSession = session as OsceSession;
-
-    if (!typedSession.door_prep || !typedSession.soap_note) {
-      return NextResponse.json(
-        { error: "Session must have both door prep and SOAP note completed" },
-        { status: 400 }
-      );
+    // Return cached feedback if already generated
+    if (session.feedback) {
+      return NextResponse.json({ feedback: session.feedback });
     }
 
-    // Build the door prep summary
-    const doorPrepDiagnoses = typedSession.door_prep.diagnoses
-      .map(
-        (d, i) =>
-          `${i + 1}. ${d.diagnosis} (confidence: ${d.confidence}/5)\n   History questions: ${d.historyQuestions.join("; ") || "none"}\n   PE maneuvers: ${d.peManeuvers.join("; ") || "none"}`
-      )
-      .join("\n");
+    const sess = session as OsceSession;
+    const doorPrep = (sess.door_prep || { diagnoses: [] }) as DoorPrepData;
+    const soapNote = (sess.soap_note || {
+      subjective_review: "",
+      objective_review: "",
+      diagnoses: [],
+    }) as SoapNoteData;
 
-    // Build the SOAP note summary
-    const soapDiagnoses = typedSession.soap_note.diagnoses
-      .map(
-        (d, i) =>
-          `${i + 1}. ${d.diagnosis} (confidence: ${d.confidence}/5)\n   Supporting evidence: ${d.supportingEvidence.join("; ") || "none"}\n   Diagnostic plan: ${d.diagnosticPlan.join("; ") || "none"}\n   Therapeutic plan: ${d.therapeuticPlan.join("; ") || "none"}`
-      )
-      .join("\n");
+    // Resolve case data for answer key
+    let chiefComplaint = "";
+    let correctDiagnosis = "";
+    let answerKey: AnswerKeyEntry[] = [];
 
-    const prompt = `You are a supportive attending physician evaluating a medical student's OSCE performance. You are reviewing their structured clinical reasoning through two phases: Door Prep (pre-encounter planning) and SOAP Note (post-encounter assessment).
+    if (sess.case_source === "practice" && sess.practice_case_id) {
+      const pc = PRACTICE_CASES.find((c: PracticeCase) => c.id === sess.practice_case_id);
+      if (pc) {
+        chiefComplaint = pc.chief_complaint;
+        correctDiagnosis = pc.correct_diagnosis;
+        // Practice cases don't have a structured answer key, so we create a minimal one
+        answerKey = [
+          {
+            diagnosis: pc.correct_diagnosis,
+            tier: "most_likely" as const,
+            vindicate_category: "E",
+            is_common: true,
+            is_cant_miss: true,
+            aliases: [],
+          },
+        ];
+      }
+    } else if (sess.case_id) {
+      const { data: caseData } = await supabase
+        .from("fcm_cases")
+        .select("*")
+        .eq("id", sess.case_id)
+        .single();
 
-## Case Context
-Practice Case ID: ${typedSession.practice_case_id || "unknown"}
+      if (caseData) {
+        chiefComplaint = caseData.chief_complaint;
+        answerKey = caseData.differential_answer_key || [];
+        correctDiagnosis = answerKey[0]?.diagnosis || "";
+      }
+    }
 
-## Phase 1: Door Prep (Pre-Encounter Planning)
-The student reviewed the door information and built an initial differential with planned history and physical exam approach:
-${doorPrepDiagnoses}
+    // Deterministic comparison
+    const comparison = compareOscePerformance(
+      doorPrep,
+      soapNote,
+      answerKey,
+      correctDiagnosis
+    );
 
-## Phase 2: SOAP Note (Post-Encounter Assessment)
-Subjective: ${typedSession.soap_note.subjective || "(not provided)"}
-Objective: ${typedSession.soap_note.objective || "(not provided)"}
-
-Revised differential with evidence mapping:
-${soapDiagnoses}
-
-## Instructions
-Evaluate the student's clinical reasoning and return a JSON object with this exact structure:
-{
-  "rubric": [
-    { "category": "Differential Diagnosis", "rating": "<excellent|good|developing|needs_work>", "comment": "<1-2 sentences evaluating breadth, organization, and appropriateness of their differential>" },
-    { "category": "History Taking", "rating": "<excellent|good|developing|needs_work>", "comment": "<1-2 sentences on their planned history questions and how well they targeted key distinguishing features>" },
-    { "category": "Physical Exam", "rating": "<excellent|good|developing|needs_work>", "comment": "<1-2 sentences on their planned PE maneuvers and clinical relevance>" },
-    { "category": "Diagnostic Workup", "rating": "<excellent|good|developing|needs_work>", "comment": "<1-2 sentences on their diagnostic plans — labs, imaging, tests ordered>" },
-    { "category": "Treatment Planning", "rating": "<excellent|good|developing|needs_work>", "comment": "<1-2 sentences on therapeutic plans — appropriateness, completeness>" }
-  ],
-  "strengths": ["<2-3 specific things the student did well>"],
-  "improvements": ["<2-3 specific, actionable suggestions for improvement>"],
-  "dont_miss": ["<1-2 critical diagnoses or findings they may have overlooked, or empty array if thorough>"],
-  "overall_comment": "<3-4 sentences of supportive, attending-style feedback. Acknowledge effort, highlight growth from door prep to SOAP note, and give one key takeaway for next time.>"
-}
-
-Rating guide:
-- excellent: Thorough, well-organized, demonstrates strong clinical reasoning
-- good: Solid approach with minor gaps or areas for refinement
-- developing: Shows understanding but missing important elements
-- needs_work: Significant gaps in approach or reasoning
-
-Be encouraging and educational. Focus on clinical reasoning process, not just correctness. Return ONLY the JSON object.`;
+    // Build prompt and call Claude
+    const prompt = buildOsceFeedbackPrompt(
+      comparison,
+      doorPrep,
+      soapNote,
+      chiefComplaint,
+      correctDiagnosis
+    );
 
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1200,
+      max_tokens: 800,
       messages: [{ role: "user", content: prompt }],
     });
 
-    const rawText =
+    const responseText =
       message.content[0].type === "text" ? message.content[0].text : "";
 
-    let feedback: OsceFeedbackResult;
+    let feedback: OSCEFeedbackResult;
+
     try {
-      feedback = JSON.parse(rawText);
-    } catch {
-      // Fallback if JSON parsing fails
+      // Strip markdown fences if Claude wraps the JSON
+      const jsonText = responseText.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
+      const parsed = JSON.parse(jsonText);
       feedback = {
-        rubric: [],
-        strengths: ["Completed the full OSCE workflow"],
-        improvements: ["Unable to parse detailed feedback — please try again"],
-        dont_miss: [],
-        overall_comment: rawText,
+        rubric_scores: parsed.rubric_scores || [],
+        ai_narrative: "",
+        strengths: parsed.strengths || [],
+        improvements: parsed.improvements || [],
+        cant_miss: parsed.cant_miss || [],
+        recommended_resources: [],
+      };
+    } catch {
+      // Fallback: surface a safe generic message
+      feedback = {
+        rubric_scores: [],
+        ai_narrative: "",
+        strengths: ["You completed the full OSCE workflow — good practice!"],
+        improvements: ["Try another case to build your differential skills."],
+        cant_miss: [],
+        recommended_resources: [],
       };
     }
 
-    // Save feedback to session
-    const now = new Date().toISOString();
-    const { data: updatedSession, error: updateError } = await supabase
+    // Cache feedback in session
+    await supabase
       .from("fcm_osce_sessions")
       .update({
         feedback,
-        feedback_generated_at: now,
+        feedback_generated_at: new Date().toISOString(),
         status: "completed",
-        completed_at: now,
-        updated_at: now,
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
-      .eq("id", session_id)
-      .select()
-      .single();
+      .eq("id", session_id);
 
-    if (updateError) {
-      console.error("Failed to save feedback:", updateError);
-      // Still return the feedback even if save fails
-      return NextResponse.json({ feedback });
-    }
-
-    return NextResponse.json({ feedback, session: updatedSession });
+    return NextResponse.json({ feedback });
   } catch (error) {
     console.error("OSCE feedback error:", error);
     return NextResponse.json(
