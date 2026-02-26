@@ -16,7 +16,8 @@ FCM Companion is a mobile-first web app for UVA medical students to practice dif
 - `src/app/(student)/` — Student route group (mobile shell + desktop sidebar)
 - `src/app/(faculty)/` — Faculty route group (desktop sidebar)
 - `src/app/(faculty)/present/page.tsx` — Projectable session dashboard (4 auto-advancing slides)
-- `src/app/api/` — API routes (feedback, practice-feedback, match-elements, submissions, notes, dashboard, osce, sentiments, session-captures, extract-theme, themes)
+- `src/app/(student)/plan/page.tsx` — Plan Ahead pre-session preparation
+- `src/app/api/` — API routes (feedback, practice-feedback, match-elements, submissions, notes, dashboard, osce, osce-session, osce-feedback, osce-chat, osce-soap-context, plan-questions, sentiments, session-captures, extract-theme, themes)
 - `src/lib/feedback.ts` — Deterministic comparison + AI narrative generation
 - `src/data/practice-cases.ts` — 324 practice cases from AgentClinic (static JSON)
 - `src/data/clinical-vocabulary.json` — 666 diagnoses with abbreviations, body_system, vindicate_category
@@ -25,7 +26,14 @@ FCM Companion is a mobile-first web app for UVA medical students to practice dif
 - `src/components/diagnosis-row.tsx` — Shared diagnosis card (reorder, confidence, reasoning)
 - `src/components/confidence-rating.tsx` — 1-5 confidence circle picker
 - `src/components/feedback-narrative.tsx` — AI feedback renderer (bullet + prose formats)
-- `src/types/` — All TypeScript types
+- `src/lib/osce-feedback.ts` — Deterministic OSCE comparison + AI narrative prompt builder
+- `src/lib/osce-soap.ts` — S/O context extraction (precomputed JSON + Claude fallback)
+- `src/lib/use-osce-autosave.ts` — Reusable autosave hook (500ms debounce, status tracking)
+- `src/data/pe-maneuvers.json` — 117 PE maneuver vocabulary entries
+- `src/data/diagnostic-tests.json` — 122 diagnostic test vocabulary entries
+- `src/data/therapeutic-options.json` — 122 therapeutic option vocabulary entries
+- `src/data/osce-soap-contexts.json` — Precomputed S/O data for practice cases
+- `src/types/` — All TypeScript types (`src/types/osce.ts` for OSCE-specific types, re-exported from index)
 - `scripts/` — Data processing and generation scripts
 
 ## Key Patterns
@@ -37,12 +45,12 @@ FCM Companion is a mobile-first web app for UVA medical students to practice dif
 - Practice mode 3-way toggle: "Essential" (default) / "Full Case" / "Simulation" — persisted in localStorage (`practice-mode` key, values: `differential`, `full`, `simulation`)
 - Topic voting: stored in `fcm_notes` with `[TOPIC VOTE]` prefix and `is_sent_to_instructor: true`
 - Responsive layout: mobile bottom nav + desktop sidebar (md breakpoint). Sidebar uses `h-dvh sticky top-0` to stay viewport-pinned with user info always visible.
-- Student nav: Cases, Try a Case, OSCE Prep, Notes, Resources, Design Lab
+- Student nav: Cases, Try a Case, OSCE Prep, Plan Ahead, Notes, Resources, Design Lab
 
 - `src/sw.ts` — Serwist service worker for PWA
 
 ## Database Tables
-`fcm_users`, `fcm_cases`, `fcm_schedule`, `fcm_submissions`, `fcm_notes`, `fcm_settings`, `fcm_osce_responses`, `fcm_quiz_scores`, `fcm_sentiments`, `fcm_session_captures`, `fcm_practice_events`, `fcm_themes`
+`fcm_users`, `fcm_cases`, `fcm_schedule`, `fcm_submissions`, `fcm_notes`, `fcm_settings`, `fcm_osce_responses`, `fcm_osce_sessions`, `fcm_quiz_scores`, `fcm_sentiments`, `fcm_session_captures`, `fcm_practice_events`, `fcm_themes`
 
 ## Commands
 ```bash
@@ -67,6 +75,7 @@ npx tsx scripts/import-uva-cases.ts <dir> # Parse UVA case files → SQL INSERT 
 - **v7.1** (Feb 24): Essential/Simulation toggle — 3-way practice mode (Essential, Full Case, Simulation). Simulation mode adds connected 4-step flow: Case Review (vitals grid + presentation) → Gather (free-text H&P input + AI semantic matching via /api/match-elements) → Differential (DDx builder with ranking + confidence + reasoning) → Debrief Dashboard (summary, H&P annotated reveal, DDx evolution snapshots, confidence calibration, journey timeline, expert reasoning, teaching concepts). New components: SimulationFlow, SimulationProgress, CaseReviewStep, GatherStep, DebriefDashboard, DdxEvolution. Extended /api/practice-feedback for enriched simulation debrief.
 - **v8** (Feb 24): Design Lab — AI-powered theme extraction. Upload screenshots (Mobbin, Dribbble, Maze), paste image URLs, or pick presets. Claude Vision extracts design tokens (colors, radius, mood). Tokens override CSS custom properties live across the entire app. Save/name/share themes with classmates. New components: ThemeExtractor, ThemePreview, ThemeGallery, ThemeCard. New context: DesignThemeProvider (persists in localStorage). New API routes: /api/extract-theme (Claude Vision), /api/themes (CRUD). New DB table: fcm_themes.
 - **Demo polish** (Feb 25): Presenter mode fixes (infinite spinner, case-sensitivity bug in missed diagnoses, error handling), dashboard API UUID validation, simulation/gather step API response validation, positive affirmation banner on feedback page. Demo seed data: `supabase/seed-demo-submissions.sql`.
+- **v9** (Feb 26): Student feature adoption — integrated actual student-built code from Matt Nguyen (OSCE), Farah (feedback redesign), and Maddie (Plan Ahead). OSCE: wholesale adoption of Matt's fork (mnn7bx/fcm-osce-branch) with PE maneuver autocomplete (117 entries), evidence-to-diagnosis linking, highlightable text annotations, Socratic AI chat panel, precomputed S/O data, deterministic feedback comparison, diagnostic test + therapeutic option vocabularies, autosave hook. Feedback: interactive VINDICATE coverage bar, clinical reasoning frameworks by chief complaint (5 specialties), danger highlighting, hover-expand stat boxes. Plan Ahead: pre-session prep module with Claude Haiku question generation, case selector, checklist, PE planner, Stanford Medicine 25 videos. Cases: due countdown summary card. New DB table: `fcm_osce_sessions`. New components: autocomplete-input, door-prep-diagnosis-row, revised-diagnosis-row, evidence-mapper, highlightable-text, osce-chat-panel, rubric-score-card, instruction-banner, sheet.
 
 ## Design Lab Architecture
 - `src/app/(student)/design-lab/page.tsx` — Main Design Lab page (two-panel: extractor + gallery)
@@ -89,12 +98,36 @@ npx tsx scripts/import-uva-cases.ts <dir> # Parse UVA case files → SQL INSERT 
 - Simulation state persisted in localStorage key `sim-{practiceId}`
 - Step 3 reuses existing DiagnosisInput, DiagnosisRow, DdxRanking
 
-## Feedback Page Architecture
+## OSCE Architecture (Matt Nguyen's design)
+- `src/app/(student)/osce/page.tsx` — Case browser with search, has_structured_exam filter, rubric dots on completed sessions
+- `src/app/(student)/osce/[sessionId]/door-prep/page.tsx` — Phase 1: differential builder with PE maneuver autocomplete, autosave
+- `src/app/(student)/osce/[sessionId]/soap-note/page.tsx` — Phase 2: two-column layout with evidence-to-diagnosis linking, highlightable text, precomputed S/O context
+- `src/app/(student)/osce/[sessionId]/feedback/page.tsx` — Phase 3: on-demand AI feedback generation, submission review accordion
+- `src/components/osce-chat-panel.tsx` — Socratic AI chat (desktop sidebar + mobile bottom sheet). Never names diagnoses, asks ONE question, references student's work
+- `src/components/autocomplete-input.tsx` — Generic autocomplete with keyboard nav, pluggable search function
+- `src/components/door-prep-diagnosis-row.tsx` — Door prep card with PE maneuver autocomplete
+- `src/components/revised-diagnosis-row.tsx` — SOAP card with evidence linking, Dx/Tx autocomplete
+- `src/components/evidence-mapper.tsx` — Finding extraction with toggleable badges
+- `src/components/highlightable-text.tsx` — Rich text annotation with color-coded diagnosis linking
+- `src/app/api/osce-session/route.ts` — Create sessions (scheduled/practice/custom)
+- `src/app/api/osce-session/[id]/route.ts` — GET + PATCH session
+- `src/app/api/osce-feedback/route.ts` — Deterministic comparison + Claude narrative
+- `src/app/api/osce-chat/route.ts` — Socratic AI backend (tracks chat_interactions_count)
+- `src/app/api/osce-soap-context/route.ts` — Precomputed S/O lookup (JSON) with Claude fallback
+- `src/data/pe-lookup.ts`, `src/data/diagnostic-test-lookup.ts`, `src/data/therapeutic-lookup.ts` — Scored search functions for clinical vocabularies
+
+## Plan Ahead Architecture (Maddie's design)
+- `src/app/(student)/plan/page.tsx` — Pre-session preparation with case selector, 4-item checklist, history questions builder (Claude Haiku), PE maneuver planner, Stanford Medicine 25 exam videos, recommended readings, session countdown, autosave
+- `src/app/api/plan-questions/route.ts` — Claude Haiku question generation with OLDCARTS fallback
+
+## Feedback Page Architecture (Farah's redesign in v9)
+- Interactive VINDICATE coverage bar (9 colored segments with percentage, hover detail)
+- Clinical reasoning frameworks by chief complaint (Cardiovascular, Gastrointestinal, Musculoskeletal, Neurological, Pulmonary) with danger highlighting
 - Positive affirmation banner (green, adaptive message based on differential breadth + VINDICATE coverage + can't-miss catches)
 - AI narrative bullets (Strength/Consider/Can't-miss categories via FeedbackNarrative component)
 - VINDICATE coverage grid (3×3, with mapped diagnoses per category)
 - Tiered differential (Most Likely → Moderate → Less Likely → Unlikely Important)
-- Common/Can't-Miss stat boxes (two-column count grid)
+- Common/Can't-Miss stat boxes with hover-expand detail (group-hover showing hit/missed diagnosis pills)
 - Topics for discussion (student voting, `[TOPIC VOTE]` prefix in fcm_notes)
 - Expert differential (Phase 2 toggle, by tier with StatPearls links + teaching points)
 - Post-session takeaway capture (only visible after session date)
