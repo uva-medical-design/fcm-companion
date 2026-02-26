@@ -63,7 +63,10 @@ export async function PATCH(
       .select()
       .single();
 
-    if (error) {
+    if (error || !session) {
+      if (error?.code === "PGRST116" || !session) {
+        return NextResponse.json({ error: "Session not found" }, { status: 404 });
+      }
       console.error("Update OSCE session error:", error);
       return NextResponse.json({ error: "Failed to update session" }, { status: 500 });
     }
