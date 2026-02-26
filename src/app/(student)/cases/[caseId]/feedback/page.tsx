@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   XCircle,
   Loader2,
+  Sparkles,
   StickyNote,
   RotateCcw,
   Eye,
@@ -266,6 +267,26 @@ export default function FeedbackPage() {
 
       {feedback && (
         <>
+          {/* Positive Affirmation Banner */}
+          <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30">
+            <CardContent className="p-4 flex items-start gap-3">
+              <Sparkles className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-green-900 dark:text-green-200">
+                  {submission?.diagnoses?.length >= 5
+                    ? "Impressive work — you built a thorough differential!"
+                    : submission?.diagnoses?.length >= 3
+                      ? "Nice job working through this case!"
+                      : "Great start — every differential you build strengthens your clinical reasoning."}
+                </p>
+                <p className="text-xs text-green-700 dark:text-green-400 mt-1">
+                  You considered {submission?.diagnoses?.length || 0} diagnos{(submission?.diagnoses?.length || 0) === 1 ? "is" : "es"} across {coveredCount} VINDICATE categor{coveredCount === 1 ? "y" : "ies"}.
+                  {feedback.cant_miss_hit.length > 0 && ` You caught ${feedback.cant_miss_hit.length} can\u2019t-miss diagnosis${feedback.cant_miss_hit.length === 1 ? "" : "es"}.`}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Phase 1: AI Narrative */}
           <Card className="border-primary/30 bg-accent/30">
             <CardContent className="p-4">
