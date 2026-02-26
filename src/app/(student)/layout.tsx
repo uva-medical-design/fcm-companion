@@ -6,6 +6,7 @@ import { useUser } from "@/lib/user-context";
 import { useEffect } from "react";
 import {
   BookOpen,
+  BookOpenCheck,
   ClipboardList,
   StickyNote,
   Library,
@@ -21,6 +22,7 @@ import { OnboardingModal } from "@/components/onboarding-modal";
 const navItems = [
   { href: "/cases", label: "Cases", icon: ClipboardList },
   { href: "/practice", label: "Try a Case", icon: Library },
+  { href: "/plan", label: "Plan Ahead", icon: BookOpenCheck },
   { href: "/osce", label: "OSCE Prep", icon: GraduationCap },
   { href: "/notes", label: "Notes", icon: StickyNote },
   { href: "/reference", label: "Resources", icon: BookOpen },

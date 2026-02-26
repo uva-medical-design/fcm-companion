@@ -28,6 +28,7 @@ import {
   Lock,
   Zap,
   ClipboardList,
+  CalendarClock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LoadingState, EmptyState, ErrorState } from "@/components/empty-state";
@@ -254,6 +255,56 @@ export default function CasesPage() {
           Build your differential, get feedback, and prepare for FCM
         </p>
       </div>
+
+      {/* Cases Due Summary */}
+      {(current.length > 0 || readyToReview.length > 0) && (() => {
+        // Find the next upcoming deadline
+        const activeCases = [...current, ...readyToReview];
+        const nextDue = activeCases
+          .filter((c) => c.schedule.session_date >= today)
+          .sort((a, b) => a.schedule.session_date.localeCompare(b.schedule.session_date))[0];
+
+        if (!nextDue) return null;
+
+        const daysUntil = nextDue.timeline.daysUntilSession;
+        const sessionLabel =
+          daysUntil <= 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : `in ${daysUntil} days`;
+        const isUrgent = daysUntil <= 1;
+        const pendingCount = current.length;
+        const reviewCount = readyToReview.length;
+
+        return (
+          <Card
+            className={cn(
+              "border-l-4",
+              isUrgent
+                ? "border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20"
+                : "border-l-primary bg-accent/30"
+            )}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <CalendarClock
+                  className={cn(
+                    "h-5 w-5 shrink-0 mt-0.5",
+                    isUrgent ? "text-amber-600 dark:text-amber-400" : "text-primary"
+                  )}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">
+                    Next session: <span className={isUrgent ? "text-amber-700 dark:text-amber-300" : ""}>{sessionLabel}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {pendingCount > 0 && `${pendingCount} case${pendingCount !== 1 ? "s" : ""} to submit`}
+                    {pendingCount > 0 && reviewCount > 0 && " · "}
+                    {reviewCount > 0 && `${reviewCount} ready to review`}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {hasNoCases && (
         <EmptyState

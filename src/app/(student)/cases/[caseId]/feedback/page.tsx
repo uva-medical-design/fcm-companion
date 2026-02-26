@@ -26,7 +26,98 @@ import {
   Send,
   MessageSquare,
   BookOpen,
+  GitBranch,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
+
+// Clinical reasoning frameworks by chief complaint (Farah's design)
+// Each framework uses a different visualization approach
+interface FrameworkBranch {
+  name: string;
+  clue?: string;
+  diagnoses: string[];
+  danger?: boolean;
+}
+
+interface ClinicalFramework {
+  title: string;
+  subtitle: string;
+  branches: FrameworkBranch[];
+}
+
+// Map both chief complaint keywords AND body systems to frameworks
+const REASONING_FRAMEWORKS: Record<string, ClinicalFramework> = {
+  // By body system (existing keys)
+  Cardiovascular: {
+    title: "Cardiac vs. Non-Cardiac",
+    subtitle: "First branch: Is this the heart, or something else?",
+    branches: [
+      { name: "ACS / Ischemic", clue: "Substernal, exertional, radiates to arm/jaw, diaphoresis", diagnoses: ["STEMI", "NSTEMI", "Unstable Angina"], danger: true },
+      { name: "Structural", clue: "Positional, friction rub, diffuse ST changes", diagnoses: ["Aortic Dissection", "Pericarditis", "Myocarditis"], danger: true },
+      { name: "Pulmonary", clue: "Pleuritic, dyspnea, cough, unilateral", diagnoses: ["Pulmonary Embolism", "Pneumothorax", "Pneumonia"] },
+      { name: "GI", clue: "Epigastric, postprandial, burning, positional", diagnoses: ["GERD", "Esophageal Spasm"] },
+      { name: "MSK", clue: "Reproducible with palpation, recent activity", diagnoses: ["Costochondritis", "Rib Fracture"] },
+    ],
+  },
+  Gastrointestinal: {
+    title: "Think in Quadrants",
+    subtitle: "Map diagnoses to anatomy — what lives in each region?",
+    branches: [
+      { name: "RUQ", clue: "Liver, Gallbladder, Duodenum, R. Kidney", diagnoses: ["Cholecystitis", "Hepatitis", "Choledocholithiasis", "Duodenal Ulcer"] },
+      { name: "LUQ", clue: "Spleen, Stomach, Pancreas tail, L. Kidney", diagnoses: ["Splenic Rupture", "Gastric Ulcer", "Pancreatitis"] },
+      { name: "RLQ", clue: "Appendix, Cecum, R. Ovary, R. Ureter", diagnoses: ["Appendicitis", "Ectopic Pregnancy", "Ovarian Torsion", "Nephrolithiasis"] },
+      { name: "LLQ", clue: "Sigmoid, L. Ovary, L. Ureter", diagnoses: ["Diverticulitis", "Ectopic Pregnancy", "Ovarian Torsion"] },
+      { name: "Diffuse", clue: "Peritoneum, Mesentery, Small Bowel", diagnoses: ["SBO", "Mesenteric Ischemia", "Gastroenteritis", "Peritonitis"], danger: true },
+    ],
+  },
+  Musculoskeletal: {
+    title: "Mono vs. Poly — Inflammatory vs. Non-Inflammatory",
+    subtitle: "How many joints? Hot/swollen? Acute or chronic?",
+    branches: [
+      { name: "Monoarticular Acute", clue: "Always rule out septic joint — aspirate if hot, swollen, acute", diagnoses: ["Septic Arthritis", "Gout", "Pseudogout", "Hemarthrosis", "Fracture"], danger: true },
+      { name: "Polyarticular Inflammatory", clue: "Morning stiffness >30 min, symmetric, improves with activity", diagnoses: ["RA", "SLE", "Reactive Arthritis", "Psoriatic Arthritis"] },
+      { name: "Non-Inflammatory", clue: "Worse with activity, better with rest, bony enlargement", diagnoses: ["Osteoarthritis", "Fibromyalgia", "Tendinopathy", "Bursitis"] },
+    ],
+  },
+  // By chief complaint keywords
+  Neurological: {
+    title: "Primary vs. Secondary",
+    subtitle: "Rule out dangerous causes first — then pattern-match primary headaches",
+    branches: [
+      { name: "Secondary (Dangerous)", clue: "Thunderclap, worst ever, fever + stiffness, focal neuro, papilledema", diagnoses: ["Subarachnoid Hemorrhage", "Meningitis", "Intracranial Mass", "Temporal Arteritis", "Cerebral Venous Thrombosis"], danger: true },
+      { name: "Primary (Benign)", clue: "Recurrent, stereotyped pattern, normal neuro exam", diagnoses: ["Tension Headache", "Migraine", "Cluster Headache", "Medication Overuse"] },
+    ],
+  },
+  Pulmonary: {
+    title: "Organ System Approach",
+    subtitle: "SOB can come from lungs, heart, or neither — think broadly",
+    branches: [
+      { name: "Pulmonary", clue: "Wheezing, crackles, decreased breath sounds, pleuritic pain", diagnoses: ["Asthma", "COPD", "Pneumonia", "PE", "Pneumothorax", "Pleural Effusion"] },
+      { name: "Cardiac", clue: "Orthopnea, PND, JVD, edema, S3 gallop", diagnoses: ["Heart Failure", "ACS", "Tamponade", "Valvular Disease", "Arrhythmia"], danger: true },
+      { name: "Hematologic", clue: "Pallor, fatigue, tachycardia at rest", diagnoses: ["Anemia", "Methemoglobinemia", "CO Poisoning"] },
+      { name: "Other", clue: "Hyperventilation, Kussmaul breathing, weakness", diagnoses: ["Anxiety", "Metabolic Acidosis", "Neuromuscular Weakness"] },
+    ],
+  },
+};
+
+// Also allow lookup by chief complaint text
+function findFramework(caseData: FcmCase | null): ClinicalFramework | null {
+  if (!caseData) return null;
+  // Try body system first
+  if (caseData.body_system && REASONING_FRAMEWORKS[caseData.body_system]) {
+    return REASONING_FRAMEWORKS[caseData.body_system];
+  }
+  // Try chief complaint keywords
+  const cc = (caseData.chief_complaint || "").toLowerCase();
+  if (cc.includes("chest pain")) return REASONING_FRAMEWORKS.Cardiovascular;
+  if (cc.includes("abdominal") || cc.includes("belly")) return REASONING_FRAMEWORKS.Gastrointestinal;
+  if (cc.includes("headache")) return REASONING_FRAMEWORKS.Neurological;
+  if (cc.includes("joint") || cc.includes("knee") || cc.includes("hip")) return REASONING_FRAMEWORKS.Musculoskeletal;
+  if (cc.includes("breath") || cc.includes("dyspnea") || cc.includes("sob")) return REASONING_FRAMEWORKS.Pulmonary;
+  if (cc.includes("syncope") || cc.includes("faint")) return REASONING_FRAMEWORKS.Cardiovascular;
+  return null;
+}
 
 function DiagnosisLink({ term }: { term: string }) {
   return (
@@ -71,6 +162,7 @@ export default function FeedbackPage() {
   const [takeawaySaved, setTakeawaySaved] = useState(false);
   const [savingTakeaway, setSavingTakeaway] = useState(false);
   const [sessionDatePast, setSessionDatePast] = useState(false);
+  const [showFramework, setShowFramework] = useState(false);
 
   async function generateFeedback() {
     setGenerating(true);
@@ -294,11 +386,43 @@ export default function FeedbackPage() {
             </CardContent>
           </Card>
 
-          {/* Phase 1: VINDICATE Coverage Grid with diagnosis labels */}
+          {/* Coverage Bar — visual progress indicator */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">
                 VINDICATE Coverage — {coveredCount} of 9
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3">
+              <div className="flex gap-1 mb-1">
+                {VINDICATE_CATEGORIES.map((cat) => {
+                  const covered = feedback.vindicate_coverage[cat.key];
+                  return (
+                    <div
+                      key={cat.key}
+                      className={cn(
+                        "h-3 flex-1 rounded-sm transition-colors",
+                        covered
+                          ? "bg-primary"
+                          : "bg-muted"
+                      )}
+                      title={`${cat.key === "I2" ? "I (Iatrogenic)" : cat.key} — ${cat.label}${covered ? " ✓" : ""}`}
+                    />
+                  );
+                })}
+              </div>
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>V I N D I C A T E</span>
+                <span>{Math.round((coveredCount / 9) * 100)}%</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Phase 1: VINDICATE Coverage Grid with diagnosis labels */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">
+                Category Details
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -426,25 +550,176 @@ export default function FeedbackPage() {
             </CardContent>
           </Card>
 
-          {/* Phase 1: Summary counts */}
+          {/* Phase 1: Summary counts with expandable detail */}
           <div className="grid grid-cols-2 gap-3">
-            <Card>
+            <Card className="group cursor-pointer hover:shadow-md transition-all">
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold">
+                <p className="text-2xl font-bold text-green-700 dark:text-green-400">
                   {feedback.common_hit.length} of {feedback.common_hit.length + feedback.common_missed.length}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">Common diagnoses identified</p>
+                <p className="text-xs text-muted-foreground mt-1">Common diagnoses</p>
+                <div className="hidden group-hover:block mt-2 pt-2 border-t text-left space-y-1.5">
+                  {feedback.common_hit.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-medium text-green-600 dark:text-green-400 mb-0.5">You got</p>
+                      <div className="flex flex-wrap gap-1">
+                        {feedback.common_hit.map((d) => (
+                          <span key={d} className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200">{d}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {feedback.common_missed.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-medium text-red-600 dark:text-red-400 mb-0.5">Missed</p>
+                      <div className="flex flex-wrap gap-1">
+                        {feedback.common_missed.map((d) => (
+                          <span key={d} className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200">{d}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className={cn(
+              "group cursor-pointer hover:shadow-md transition-all",
+              feedback.cant_miss_missed.length > 0 && "border-red-200 dark:border-red-900/50"
+            )}>
               <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold">
+                <p className={cn(
+                  "text-2xl font-bold",
+                  feedback.cant_miss_missed.length > 0
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-green-700 dark:text-green-400"
+                )}>
                   {feedback.cant_miss_hit.length} of {feedback.cant_miss_hit.length + feedback.cant_miss_missed.length}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">Can&apos;t-miss diagnoses identified</p>
+                <p className="text-xs text-muted-foreground mt-1">Can&apos;t-miss diagnoses</p>
+                <div className="hidden group-hover:block mt-2 pt-2 border-t text-left space-y-1.5">
+                  {feedback.cant_miss_hit.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-medium text-green-600 dark:text-green-400 mb-0.5">You got</p>
+                      <div className="flex flex-wrap gap-1">
+                        {feedback.cant_miss_hit.map((d) => (
+                          <span key={d} className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200">{d}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {feedback.cant_miss_missed.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-medium text-red-600 dark:text-red-400 mb-0.5">Don&apos;t forget</p>
+                      <div className="flex flex-wrap gap-1">
+                        {feedback.cant_miss_missed.map((d) => (
+                          <span key={d} className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200">{d}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
+
+          {/* Clinical Reasoning Framework (Farah's design) */}
+          {(() => {
+            const framework = findFramework(caseData);
+            if (!framework) return null;
+            return (
+              <Card>
+                <CardHeader className="pb-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowFramework(!showFramework)}
+                    className="flex items-center justify-between w-full text-left"
+                  >
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <GitBranch className="h-4 w-4" />
+                      {framework.title}
+                    </CardTitle>
+                    {showFramework ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
+                  <p className="text-xs text-muted-foreground mt-1">{framework.subtitle}</p>
+                </CardHeader>
+                {showFramework && (
+                  <CardContent className="space-y-3">
+                    {framework.branches.map((branch) => {
+                      const matchedInBranch = branch.diagnoses.filter((d) =>
+                        matchedDiagnoses.has(d) ||
+                        [...matchedDiagnoses].some((m) => m.toLowerCase().includes(d.toLowerCase()) || d.toLowerCase().includes(m.toLowerCase()))
+                      );
+                      const hasCoverage = matchedInBranch.length > 0;
+                      return (
+                        <div
+                          key={branch.name}
+                          className={cn(
+                            "rounded-lg border p-3 space-y-1.5",
+                            hasCoverage
+                              ? "border-primary/30 bg-accent/30"
+                              : branch.danger
+                                ? "border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/10"
+                                : "border-border"
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={cn(
+                              "text-xs font-semibold px-2 py-0.5 rounded",
+                              hasCoverage
+                                ? "bg-primary text-primary-foreground"
+                                : branch.danger
+                                  ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                                  : "bg-muted text-muted-foreground"
+                            )}>
+                              {branch.danger && !hasCoverage ? "! " : ""}{branch.name}
+                            </span>
+                            {hasCoverage && (
+                              <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                            )}
+                            {branch.danger && !hasCoverage && (
+                              <AlertTriangle className="h-3.5 w-3.5 text-red-500 dark:text-red-400" />
+                            )}
+                          </div>
+                          {branch.clue && (
+                            <p className="text-[11px] text-muted-foreground">
+                              {branch.clue}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap gap-1">
+                            {branch.diagnoses.map((d) => {
+                              const isHit = matchedInBranch.some(
+                                (m) => m.toLowerCase().includes(d.toLowerCase()) || d.toLowerCase().includes(m.toLowerCase())
+                              ) || matchedDiagnoses.has(d);
+                              return (
+                                <span
+                                  key={d}
+                                  className={cn(
+                                    "text-[10px] px-1.5 py-0.5 rounded border",
+                                    isHit
+                                      ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200"
+                                      : "bg-background border-border text-muted-foreground"
+                                  )}
+                                >
+                                  {d}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <p className="text-[10px] text-muted-foreground italic">
+                      Green = you covered it. Red = high-danger category to consider. Explore uncovered branches to broaden your differential.
+                    </p>
+                  </CardContent>
+                )}
+              </Card>
+            );
+          })()}
 
           {/* Topics for Discussion */}
           <Card id="topics">

@@ -1,86 +1,67 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useState, useMemo } from "react";
 import { useUser } from "@/lib/user-context";
-import type { FcmCase } from "@/types";
+import { useRouter } from "next/navigation";
+import { PRACTICE_CASES } from "@/data/practice-cases";
+import type { PracticeCase } from "@/types";
+import type { OsceSession } from "@/types/osce";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { OsceRubric } from "@/components/osce-rubric";
-import type { RubricScore } from "@/components/osce-rubric";
+import { OsceProgress } from "@/components/osce-progress";
 import {
   Loader2,
-  Mic,
-  MicOff,
-  Send,
-  RotateCcw,
-  GraduationCap,
-  ArrowLeft,
   Search,
-  History,
+  Plus,
+  Clock,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  GraduationCap,
 } from "lucide-react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-type Mode = "browse" | "text" | "voice";
 
 export default function OscePage() {
   const { user } = useUser();
-  const [cases, setCases] = useState<FcmCase[]>([]);
-  const [selectedCase, setSelectedCase] = useState<FcmCase | null>(null);
-  const [mode, setMode] = useState<Mode>("browse");
-  const [textResponse, setTextResponse] = useState("");
-  const [voiceText, setVoiceText] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
-  const [rubricScores, setRubricScores] = useState<RubricScore[]>([]);
-  const [narrative, setNarrative] = useState<string | null>(null);
-  const [evaluating, setEvaluating] = useState(false);
+  const router = useRouter();
+  const [sessions, setSessions] = useState<OsceSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
   const [bodySystemFilter, setBodySystemFilter] = useState("");
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [showAllPast, setShowAllPast] = useState(false);
 
+  // Fetch existing sessions
   useEffect(() => {
-    async function fetchCases() {
-      // Get cases that user has submitted
-      const { data: submissions } = await supabase
-        .from("fcm_submissions")
-        .select("case_id")
-        .eq("user_id", user!.id)
-        .in("status", ["submitted", "resubmitted"]);
-
-      if (submissions && submissions.length > 0) {
-        const caseIds = submissions.map((s) => s.case_id);
-        const { data: casesData } = await supabase
-          .from("fcm_cases")
-          .select("*")
-          .in("id", caseIds)
-          .order("sort_order");
-
-        if (casesData) setCases(casesData);
+    async function fetchSessions() {
+      if (!user) return;
+      try {
+        const res = await fetch(`/api/osce-session?user_id=${user.id}`);
+        const data = await res.json();
+        if (data.sessions) setSessions(data.sessions);
+      } catch (err) {
+        console.error("Failed to fetch OSCE sessions:", err);
       }
       setLoading(false);
     }
-
-    if (user) fetchCases();
+    fetchSessions();
   }, [user]);
 
-  // Derive unique body systems
+  // Derive unique body systems from practice cases
   const bodySystems = useMemo(() => {
     const systems = new Set<string>();
-    for (const c of cases) {
+    for (const c of PRACTICE_CASES) {
       if (c.body_system) systems.add(c.body_system);
     }
     return Array.from(systems).sort();
-  }, [cases]);
+  }, []);
 
-  // Filter cases
-  const filtered = useMemo(() => {
+  // Filter practice cases
+  const filteredCases = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return cases.filter((c) => {
+    return PRACTICE_CASES.filter((c) => {
       if (bodySystemFilter && c.body_system !== bodySystemFilter) return false;
       if (q) {
         const searchable = [c.chief_complaint, c.title, c.body_system]
@@ -90,107 +71,71 @@ export default function OscePage() {
       }
       return true;
     });
-  }, [cases, search, bodySystemFilter]);
+  }, [search, bodySystemFilter]);
 
-  function startCase(c: FcmCase, m: "text" | "voice") {
-    setSelectedCase(c);
-    setMode(m);
-    setTextResponse("");
-    setVoiceText("");
-    setRubricScores([]);
-    setNarrative(null);
+  // Split sessions
+  const inProgressSessions = sessions.filter(
+    (s) => s.status === "door_prep" || s.status === "soap_note"
+  );
+  const completedSessions = sessions.filter((s) => s.status === "completed");
+  const visibleCompleted = showAllPast
+    ? completedSessions
+    : completedSessions.slice(0, 5);
+
+  // Look up practice case info by ID
+  function getCaseInfo(
+    practiceId: string | null
+  ): PracticeCase | undefined {
+    if (!practiceId) return undefined;
+    return PRACTICE_CASES.find((c) => c.id === practiceId);
   }
 
-  function goBack() {
-    setSelectedCase(null);
-    setMode("browse");
-    setRubricScores([]);
-    setNarrative(null);
-    setTextResponse("");
-    setVoiceText("");
-    stopRecording();
-  }
-
-  async function submitResponse(content: string, type: "text" | "voice") {
-    if (!user || !selectedCase || !content.trim()) return;
-    setEvaluating(true);
+  async function startSession(practiceCase: PracticeCase) {
+    if (!user || creating) return;
+    setCreating(true);
     try {
-      const res = await fetch("/api/osce", {
+      const res = await fetch("/api/osce-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id: user.id,
-          case_id: selectedCase.id,
-          response_content: content,
-          response_type: type,
+          practice_case_id: practiceCase.id,
+          case_source: "practice",
         }),
       });
       const data = await res.json();
-      if (data.rubric && data.rubric.length > 0) {
-        setRubricScores(data.rubric);
-        setNarrative(data.narrative || null);
-      } else if (data.evaluation) {
-        // Fallback for plain text evaluation
-        setRubricScores([]);
-        setNarrative(data.evaluation);
+      if (data.session) {
+        router.push(`/osce/${data.session.id}/door-prep`);
       }
-    } catch {
-      setNarrative("Unable to generate evaluation. Please try again.");
+    } catch (err) {
+      console.error("Failed to create session:", err);
     }
-    setEvaluating(false);
+    setCreating(false);
   }
 
-  function startRecording() {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setNarrative(
-        "Speech recognition is not supported in your browser. Try Chrome on mobile."
-      );
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-
-    let finalText = "";
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalText += event.results[i][0].transcript + " ";
-        } else {
-          interim += event.results[i][0].transcript;
-        }
-      }
-      setVoiceText(finalText + interim);
-    };
-
-    recognition.onerror = () => {
-      setIsRecording(false);
-    };
-
-    recognition.onend = () => {
-      setIsRecording(false);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-    setIsRecording(true);
-    setVoiceText("");
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   }
 
-  function stopRecording() {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
+  function ratingColor(rating: string): string {
+    switch (rating) {
+      case "excellent":
+        return "bg-green-500";
+      case "good":
+        return "bg-blue-500";
+      case "developing":
+        return "bg-amber-400";
+      case "needs_work":
+        return "bg-muted-foreground/40";
+      default:
+        return "bg-muted-foreground/20";
     }
-    setIsRecording(false);
   }
-
-  const hasEvaluation = narrative !== null;
 
   if (loading) {
     return (
@@ -200,248 +145,233 @@ export default function OscePage() {
     );
   }
 
-  // Case browser view
-  if (mode === "browse") {
-    return (
-      <div className="p-4 space-y-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-lg font-semibold">OSCE Prep</h1>
-            <p className="text-sm text-muted-foreground">
-              Practice presenting your differential from memory
-            </p>
-          </div>
-          <Link href="/osce/history">
-            <Button variant="outline" size="sm">
-              <History className="h-4 w-4 mr-1" />
-              History
-            </Button>
-          </Link>
-        </div>
-
-        {cases.length === 0 ? (
-          <Card>
-            <CardContent className="p-6 text-center text-sm text-muted-foreground">
-              Submit at least one case differential to unlock OSCE practice.
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {/* Search + filter */}
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search cases..."
-                  className="pl-9"
-                />
-              </div>
-              {bodySystems.length > 1 && (
-                <select
-                  value={bodySystemFilter}
-                  onChange={(e) => setBodySystemFilter(e.target.value)}
-                  aria-label="Filter by body system"
-                  className="rounded-md border bg-background px-3 py-1.5 text-sm"
-                >
-                  <option value="">All Systems</option>
-                  {bodySystems.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* Case list */}
-            <div className="space-y-3">
-              {filtered.map((c) => (
-                <Card key={c.id}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">
-                      {c.chief_complaint}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-                      {c.body_system && (
-                        <Badge variant="outline">{c.body_system}</Badge>
-                      )}
-                      <Badge variant="outline">{c.difficulty}</Badge>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => startCase(c, "text")}
-                      >
-                        Type Response
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => startCase(c, "voice")}
-                      >
-                        <Mic className="h-3.5 w-3.5 mr-1" />
-                        Voice
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {filtered.length === 0 && (
-              <div className="py-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                  No cases match your search.
-                </p>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    );
-  }
-
-  // Practice view (text or voice)
   return (
-    <div className="p-4 space-y-4">
-      <button
-        onClick={goBack}
-        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to cases
-      </button>
-
-      {/* Case prompt */}
-      <Card className="border-primary/30">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <GraduationCap className="h-4 w-4 text-primary" />
-            <span className="text-xs font-medium text-primary uppercase">
-              OSCE Practice
-            </span>
-          </div>
-          <p className="text-sm font-medium">
-            {selectedCase?.chief_complaint}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            Present your differential diagnosis from memory.{" "}
-            {mode === "voice"
-              ? "Tap the microphone to begin speaking."
-              : "Type your response below."}
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Text mode */}
-      {mode === "text" && !hasEvaluation && (
-        <div className="space-y-3">
-          <Textarea
-            value={textResponse}
-            onChange={(e) => setTextResponse(e.target.value)}
-            placeholder="List your differential diagnoses and briefly explain your reasoning..."
-            className="min-h-[150px]"
-          />
-          <Button
-            onClick={() => submitResponse(textResponse, "text")}
-            disabled={!textResponse.trim() || evaluating}
-            className="w-full"
-          >
-            {evaluating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                Evaluating...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4 mr-1" />
-                Submit for Feedback
-              </>
-            )}
-          </Button>
+    <div className="p-4 space-y-6 max-w-3xl mx-auto">
+      {/* Header */}
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <GraduationCap className="h-5 w-5 text-primary" />
+          <h1 className="text-lg font-semibold">OSCE Prep</h1>
         </div>
+        <p className="text-sm text-muted-foreground">
+          Structured 3-phase clinical simulation: Door Prep, SOAP Note, AI
+          Feedback
+        </p>
+      </div>
+
+      {/* Continue Sessions */}
+      {inProgressSessions.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium flex items-center gap-2">
+            <Clock className="h-4 w-4 text-amber-500" />
+            Continue Session
+          </h2>
+          {inProgressSessions.map((session) => {
+            const caseInfo = getCaseInfo(session.practice_case_id);
+            const nextPath =
+              session.status === "door_prep" ? "door-prep" : "soap-note";
+            return (
+              <Card key={session.id} className="border-amber-200 dark:border-amber-900/50">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">
+                        {caseInfo?.chief_complaint || "Unknown case"}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {caseInfo?.body_system && (
+                          <Badge variant="outline" className="text-xs">
+                            {caseInfo.body_system}
+                          </Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          Started {formatDate(session.started_at)}
+                        </span>
+                      </div>
+                      <div className="mt-2">
+                        <OsceProgress currentStep={session.status} />
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        router.push(`/osce/${session.id}/${nextPath}`)
+                      }
+                    >
+                      Resume
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </section>
       )}
 
-      {/* Voice mode */}
-      {mode === "voice" && !hasEvaluation && (
-        <div className="space-y-3">
-          {voiceText && (
-            <Card>
-              <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground mb-1">
-                  Captured speech:
-                </p>
-                <p className="text-sm">{voiceText}</p>
+      {/* Past Sessions */}
+      {completedSessions.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            Past Sessions
+          </h2>
+          {visibleCompleted.map((session) => {
+            const caseInfo = getCaseInfo(session.practice_case_id);
+            const rubricDots = session.feedback?.rubric || [];
+            return (
+              <Card
+                key={session.id}
+                className="cursor-pointer hover:border-primary/30 transition-colors"
+                onClick={() =>
+                  router.push(`/osce/${session.id}/feedback`)
+                }
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">
+                        {caseInfo?.chief_complaint || "Unknown case"}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {caseInfo?.body_system && (
+                          <Badge variant="outline" className="text-xs">
+                            {caseInfo.body_system}
+                          </Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {session.completed_at
+                            ? formatDate(session.completed_at)
+                            : formatDate(session.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Rubric dot summary */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {rubricDots.map((r, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "h-2.5 w-2.5 rounded-full",
+                            ratingColor(r.rating)
+                          )}
+                          title={`${r.category}: ${r.rating}`}
+                        />
+                      ))}
+                      <ChevronRight className="h-4 w-4 text-muted-foreground ml-1" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+          {completedSessions.length > 5 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAllPast(!showAllPast)}
+              className="w-full text-muted-foreground"
+            >
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 mr-1 transition-transform",
+                  showAllPast && "rotate-180"
+                )}
+              />
+              {showAllPast
+                ? "Show less"
+                : `Show all ${completedSessions.length} sessions`}
+            </Button>
+          )}
+        </section>
+      )}
+
+      {/* Start New Session */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-medium flex items-center gap-2">
+          <Plus className="h-4 w-4 text-primary" />
+          Start New Session
+        </h2>
+
+        {/* Search + filter */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search cases..."
+              className="pl-9"
+            />
+          </div>
+          {bodySystems.length > 1 && (
+            <select
+              value={bodySystemFilter}
+              onChange={(e) => setBodySystemFilter(e.target.value)}
+              aria-label="Filter by body system"
+              className="rounded-md border bg-background px-3 py-1.5 text-sm"
+            >
+              <option value="">All Systems</option>
+              {bodySystems.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {/* Case list */}
+        <div className="space-y-2">
+          {filteredCases.slice(0, 20).map((c) => (
+            <Card key={c.id}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">{c.chief_complaint}</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {c.body_system && (
+                      <Badge variant="outline">{c.body_system}</Badge>
+                    )}
+                    <Badge variant="outline">{c.difficulty}</Badge>
+                    {c.patient_age && c.patient_gender && (
+                      <span>
+                        {c.patient_age}yo {c.patient_gender}
+                      </span>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => startSession(c)}
+                    disabled={creating}
+                  >
+                    {creating ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      "Start"
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-          )}
+          ))}
+        </div>
 
-          <div className="flex gap-3">
-            <Button
-              variant={isRecording ? "destructive" : "default"}
-              onClick={isRecording ? stopRecording : startRecording}
-              className="flex-1 h-14"
-            >
-              {isRecording ? (
-                <>
-                  <MicOff className="h-5 w-5 mr-2" />
-                  Stop Recording
-                </>
-              ) : (
-                <>
-                  <Mic className="h-5 w-5 mr-2" />
-                  Start Recording
-                </>
-              )}
-            </Button>
+        {filteredCases.length === 0 && (
+          <div className="py-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              No cases match your search.
+            </p>
           </div>
+        )}
 
-          {voiceText && !isRecording && (
-            <Button
-              onClick={() => submitResponse(voiceText, "voice")}
-              disabled={evaluating}
-              className="w-full"
-            >
-              {evaluating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                  Evaluating...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-1" />
-                  Submit for Feedback
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Evaluation result */}
-      {hasEvaluation && (
-        <div className="space-y-3">
-          <Card className="border-primary/30 bg-accent/30">
-            <CardContent className="p-4">
-              {rubricScores.length > 0 ? (
-                <OsceRubric scores={rubricScores} narrative={narrative || ""} />
-              ) : (
-                <p className="text-sm leading-relaxed">{narrative}</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Button variant="outline" onClick={goBack} className="w-full">
-            <RotateCcw className="h-4 w-4 mr-1" />
-            Practice Another Case
-          </Button>
-        </div>
-      )}
+        {filteredCases.length > 20 && (
+          <p className="text-xs text-center text-muted-foreground">
+            Showing 20 of {filteredCases.length} cases. Refine your search to
+            see more.
+          </p>
+        )}
+      </section>
     </div>
   );
 }
