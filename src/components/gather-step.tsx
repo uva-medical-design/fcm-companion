@@ -195,7 +195,9 @@ export function GatherStep({
           })),
         }),
       });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
+      if (data.error) throw new Error(data.error);
       setHistoryMatches(data.historyMatches || []);
       setExamMatches(data.examMatches || []);
     } catch {

@@ -267,6 +267,9 @@ export function SimulationFlow({ practiceCase, practiceId }: SimulationFlowProps
         }),
       });
       const data = await res.json();
+      if (!res.ok || data.error || !data.narrative) {
+        throw new Error(data.error || "Invalid feedback response");
+      }
       setFeedback(data);
       setStep(4);
     } catch {

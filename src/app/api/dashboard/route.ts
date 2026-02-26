@@ -14,6 +14,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Validate UUID format to prevent Postgres errors
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(caseId)) {
+      return NextResponse.json(
+        { error: "Invalid case_id format" },
+        { status: 400 }
+      );
+    }
+
     const supabase = createServerClient();
 
     // Get the case (for answer key)

@@ -40,14 +40,21 @@ export default function PresentPage() {
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (!caseId) return;
+    if (!caseId) {
+      setLoading(false);
+      return;
+    }
     async function load() {
-      const [caseResult, dashResult] = await Promise.all([
-        supabase.from("fcm_cases").select("*").eq("id", caseId).single(),
-        fetch(`/api/dashboard?case_id=${caseId}`).then((r) => r.json()),
-      ]);
-      if (caseResult.data) setCaseData(caseResult.data);
-      setData(dashResult);
+      try {
+        const [caseResult, dashResult] = await Promise.all([
+          supabase.from("fcm_cases").select("*").eq("id", caseId).single(),
+          fetch(`/api/dashboard?case_id=${caseId}`).then((r) => r.json()),
+        ]);
+        if (caseResult.data) setCaseData(caseResult.data);
+        if (dashResult && !dashResult.error) setData(dashResult);
+      } catch (err) {
+        console.error("Present page load error:", err);
+      }
       setLoading(false);
     }
     load();
@@ -95,10 +102,20 @@ export default function PresentPage() {
     );
   }
 
+  if (!caseId) {
+    return (
+      <div className="fixed inset-0 bg-slate-900 text-white flex flex-col items-center justify-center gap-4">
+        <p className="text-xl">No case selected</p>
+        <p className="text-sm text-slate-400">Select a case from the <button onClick={() => router.push("/dashboard")} className="underline hover:text-white">faculty dashboard</button> to launch presenter mode.</p>
+      </div>
+    );
+  }
+
   if (!data || !caseData) {
     return (
-      <div className="fixed inset-0 bg-slate-900 text-white flex items-center justify-center">
-        <p className="text-xl">No data available.</p>
+      <div className="fixed inset-0 bg-slate-900 text-white flex flex-col items-center justify-center gap-4">
+        <p className="text-xl">No data available</p>
+        <p className="text-sm text-slate-400">Could not load case data. <button onClick={() => router.push("/dashboard")} className="underline hover:text-white">Return to dashboard</button></p>
       </div>
     );
   }
@@ -112,7 +129,7 @@ export default function PresentPage() {
     (caseData.differential_answer_key || []).filter((e) => e.is_cant_miss).map((e) => e.diagnosis.toLowerCase().trim())
   );
   // Missed answer key diagnoses (not in student top responses)
-  const studentDiagSet = new Set(data.diagnosis_frequency.map((d) => d.diagnosis));
+  const studentDiagSet = new Set(data.diagnosis_frequency.map((d) => d.diagnosis.toLowerCase().trim()));
   const missedAnswerKey = (caseData.differential_answer_key || [])
     .filter((e) => !studentDiagSet.has(e.diagnosis.toLowerCase().trim()))
     .map((e) => e.diagnosis);
