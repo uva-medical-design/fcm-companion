@@ -402,8 +402,8 @@ export default function PlanPage() {
               const parsed = JSON.parse(data.content);
               if (parsed.__planv2) {
                 const plan = parsed.__planv2 as PlanData;
-                if (plan.historyQs?.length) setHistoryQs(plan.historyQs);
-                if (plan.maneuvers?.length) setManeuvers(plan.maneuvers);
+                if (plan.historyQs?.length) setHistoryQs(plan.historyQs.map(q => String(q ?? "")));
+                if (plan.maneuvers?.length) setManeuvers(plan.maneuvers.map(m => ({ name: String(m.name ?? ""), lookingFor: String(m.lookingFor ?? "") })));
               }
             } catch {
               // Not plan data, ignore
@@ -446,9 +446,9 @@ export default function PlanPage() {
       const systemVideos = VIDEOS_BY_SYSTEM[bodySystem] || [];
       next[0] = systemVideos.some((v) => watchedVideos.has(v.videoId));
       // Item 1: any history question filled
-      next[1] = historyQs.some((q) => q.trim().length > 0);
+      next[1] = historyQs.some((q) => (q || "").trim().length > 0);
       // Item 2: any maneuver filled
-      next[2] = maneuvers.some((m) => m.name.trim().length > 0);
+      next[2] = maneuvers.some((m) => (m.name || "").trim().length > 0);
       // Item 3 stays as-is (DB-driven)
       saveChecklist(selectedCaseId, next);
       return next;
@@ -731,9 +731,9 @@ export default function PlanPage() {
             icon={BookOpen}
             defaultOpen
             badge={
-              historyQs.filter((q) => q.trim()).length > 0 ? (
+              historyQs.filter((q) => (q || "").trim()).length > 0 ? (
                 <Badge variant="secondary" className="text-xs">
-                  {historyQs.filter((q) => q.trim()).length} written
+                  {historyQs.filter((q) => (q || "").trim()).length} written
                 </Badge>
               ) : null
             }
@@ -797,9 +797,9 @@ export default function PlanPage() {
             icon={Stethoscope}
             defaultOpen
             badge={
-              maneuvers.filter((m) => m.name.trim()).length > 0 ? (
+              maneuvers.filter((m) => (m.name || "").trim()).length > 0 ? (
                 <Badge variant="secondary" className="text-xs">
-                  {maneuvers.filter((m) => m.name.trim()).length} planned
+                  {maneuvers.filter((m) => (m.name || "").trim()).length} planned
                 </Badge>
               ) : null
             }
