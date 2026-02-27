@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { UserProvider } from "@/lib/user-context";
 import { ThemeProvider } from "@/lib/theme-context";
+import { DesignThemeProvider } from "@/lib/design-theme-context";
 import "./globals.css";
 
 const inter = Inter({
@@ -36,7 +37,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#2563EB",
+  themeColor: "#0b8574",
 };
 
 export default function RootLayout({
@@ -57,7 +58,9 @@ export default function RootLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         <ThemeProvider>
-          <UserProvider>{children}</UserProvider>
+          <DesignThemeProvider>
+            <UserProvider>{children}</UserProvider>
+          </DesignThemeProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -13,6 +13,7 @@ import {
   GraduationCap,
   LogOut,
   Stethoscope,
+  Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -25,6 +26,7 @@ const navItems = [
   { href: "/osce", label: "OSCE Prep", icon: GraduationCap },
   { href: "/notes", label: "Notes", icon: StickyNote },
   { href: "/reference", label: "Resources", icon: BookOpen },
+  { href: "/design-lab", label: "Design Lab", icon: Palette },
 ];
 
 export default function StudentLayout({
