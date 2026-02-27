@@ -5,132 +5,162 @@
 
 /* ============================================
    FCM Companion Design System
-   Based on MDP monochrome + medical teal accent
+   Research-backed tokens optimized for long
+   clinical study sessions (90th-minute design)
    ============================================ */
 
 :root {
-  /* Warm neutral primitives (stone-tinted) */
-  --color-black: #000000;
-  --color-near-black: #1c1917;
-  --color-dark-gray: #352f2b;
-  --color-mid-gray: #78716c;
-  --color-light-gray: #a8a29e;
-  --color-pale-gray: #d6d3d1;
-  --color-off-white: #f5f5f4;
-  --color-white: #fafaf9;
+  /* === Primitives === */
+  --color-surface-warm: #F8F6F3;       /* Warm off-white — main app background */
+  --color-surface-white: #FFFFFF;      /* Pure white — cards, panels */
+  --color-surface-dim: #F1EDE8;        /* Slightly darker warm — sidebar, nav */
 
-  /* Muted teal accent (softened for clinical calm) */
-  --color-teal-50: #f0fdf9;
-  --color-teal-100: #c6f7e9;
-  --color-teal-200: #8eecd4;
-  --color-teal-300: #52d9bc;
-  --color-teal-400: #28c4a6;
-  --color-teal-500: #10a48b;
-  --color-teal-600: #0b8574;
-  --color-teal-700: #0c6b5f;
-  --color-teal-800: #0e554d;
-  --color-teal-900: #10453f;
+  --color-text-dark: #2D2D2D;         /* Dark charcoal — body text */
+  --color-text-muted: #6B7280;        /* Gray-600 — metadata, captions */
+  --color-text-faint: #9CA3AF;        /* Gray-400 — placeholders, disabled */
 
-  /* Status Colors (slightly muted) */
-  --color-success: #15803d;
-  --color-warning: #b45309;
-  --color-danger: #b91c1c;
+  --color-border-light: #E5E7EB;      /* Gray-200 — card borders, dividers */
+  --color-border-medium: #D1D5DB;     /* Gray-300 — input borders */
+
+  --color-blue-600: #2563EB;          /* Primary accent */
+  --color-blue-700: #1D4ED8;          /* Primary hover */
+  --color-blue-50: #EFF6FF;           /* Primary subtle background */
+  --color-blue-900: #1E3A5F;          /* Primary dark text */
+
+  /* Status colors */
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+
+  /* === Spacing base === */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* === Motion === */
+  --duration-instant: 100ms;
+  --duration-fast: 200ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-enter: cubic-bezier(0, 0, 0.2, 1);
+  --easing-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* === Shadows === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.3);
+
+  /* === Typography === */
+  --measure: 65ch;
 }
 
 /* ============================================
    SHADCN THEME VARIABLES - LIGHT MODE
    ============================================ */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.5rem;
 
-  --background: var(--color-white);
-  --foreground: var(--color-near-black);
+  --background: var(--color-surface-warm);
+  --foreground: var(--color-text-dark);
 
-  --card: var(--color-white);
-  --card-foreground: var(--color-near-black);
+  --card: var(--color-surface-white);
+  --card-foreground: var(--color-text-dark);
 
-  --popover: var(--color-white);
-  --popover-foreground: var(--color-near-black);
+  --popover: var(--color-surface-white);
+  --popover-foreground: var(--color-text-dark);
 
-  --primary: var(--color-teal-600);
-  --primary-foreground: var(--color-white);
+  --primary: var(--color-blue-600);
+  --primary-foreground: #FFFFFF;
 
-  --secondary: var(--color-off-white);
-  --secondary-foreground: var(--color-near-black);
+  --secondary: var(--color-surface-dim);
+  --secondary-foreground: var(--color-text-dark);
 
-  --muted: var(--color-off-white);
-  --muted-foreground: var(--color-mid-gray);
+  --muted: var(--color-surface-dim);
+  --muted-foreground: var(--color-text-muted);
 
-  --accent: var(--color-teal-50);
-  --accent-foreground: var(--color-teal-900);
+  --accent: var(--color-blue-50);
+  --accent-foreground: var(--color-blue-900);
 
-  --destructive: #dc2626;
+  --destructive: var(--color-danger);
 
-  --border: var(--color-pale-gray);
-  --input: var(--color-pale-gray);
-  --ring: var(--color-teal-500);
+  --border: var(--color-border-light);
+  --input: var(--color-border-medium);
+  --ring: var(--color-blue-600);
 
-  --chart-1: var(--color-teal-600);
-  --chart-2: var(--color-teal-400);
-  --chart-3: var(--color-teal-300);
-  --chart-4: var(--color-mid-gray);
-  --chart-5: var(--color-pale-gray);
+  --chart-1: #2563EB;
+  --chart-2: #3B82F6;
+  --chart-3: #60A5FA;
+  --chart-4: var(--color-text-muted);
+  --chart-5: var(--color-border-light);
 
-  --sidebar: var(--color-off-white);
-  --sidebar-foreground: var(--color-near-black);
-  --sidebar-primary: var(--color-teal-700);
-  --sidebar-primary-foreground: var(--color-white);
-  --sidebar-accent: var(--color-teal-50);
-  --sidebar-accent-foreground: var(--color-teal-900);
-  --sidebar-border: var(--color-pale-gray);
-  --sidebar-ring: var(--color-teal-500);
+  --sidebar: var(--color-surface-dim);
+  --sidebar-foreground: var(--color-text-dark);
+  --sidebar-primary: var(--color-blue-700);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: var(--color-blue-50);
+  --sidebar-accent-foreground: var(--color-blue-900);
+  --sidebar-border: var(--color-border-light);
+  --sidebar-ring: var(--color-blue-600);
 }
 
 /* ============================================
    DARK MODE
+   Warm blue-gray palette — NOT pure black.
+   Desaturated accents for reduced eye strain.
    ============================================ */
 .dark {
-  --background: var(--color-near-black);
-  --foreground: var(--color-off-white);
+  --background: #1A1A2E;
+  --foreground: #E0E0E0;
 
-  --card: #292524;
-  --card-foreground: var(--color-off-white);
+  --card: #222236;
+  --card-foreground: #E0E0E0;
 
-  --popover: #292524;
-  --popover-foreground: var(--color-off-white);
+  --popover: #222236;
+  --popover-foreground: #E0E0E0;
 
-  --primary: var(--color-teal-400);
-  --primary-foreground: var(--color-near-black);
+  --primary: #60A5FA;
+  --primary-foreground: #1A1A2E;
 
-  --secondary: var(--color-dark-gray);
-  --secondary-foreground: var(--color-off-white);
+  --secondary: #2A2A42;
+  --secondary-foreground: #E0E0E0;
 
-  --muted: var(--color-dark-gray);
-  --muted-foreground: var(--color-light-gray);
+  --muted: #2A2A42;
+  --muted-foreground: #A0A0B0;
 
-  --accent: var(--color-teal-900);
-  --accent-foreground: var(--color-teal-100);
+  --accent: rgba(96, 165, 250, 0.15);
+  --accent-foreground: #93C5FD;
 
-  --destructive: #ef4444;
+  --destructive: #F87171;
 
-  --border: #44403c;
-  --input: #44403c;
-  --ring: var(--color-teal-400);
+  --border: #2E2E48;
+  --input: #3E3E58;
+  --ring: #60A5FA;
 
-  --chart-1: var(--color-teal-400);
-  --chart-2: var(--color-teal-300);
-  --chart-3: var(--color-teal-200);
-  --chart-4: var(--color-light-gray);
-  --chart-5: var(--color-dark-gray);
+  --chart-1: #60A5FA;
+  --chart-2: #93C5FD;
+  --chart-3: #BFDBFE;
+  --chart-4: #A0A0B0;
+  --chart-5: #2A2A42;
 
-  --sidebar: #292524;
-  --sidebar-foreground: var(--color-off-white);
-  --sidebar-primary: var(--color-teal-400);
-  --sidebar-primary-foreground: var(--color-near-black);
-  --sidebar-accent: var(--color-teal-900);
-  --sidebar-accent-foreground: var(--color-teal-100);
-  --sidebar-border: #44403c;
-  --sidebar-ring: var(--color-teal-400);
+  --sidebar: #16162A;
+  --sidebar-foreground: #E0E0E0;
+  --sidebar-primary: #60A5FA;
+  --sidebar-primary-foreground: #1A1A2E;
+  --sidebar-accent: rgba(96, 165, 250, 0.15);
+  --sidebar-accent-foreground: #93C5FD;
+  --sidebar-border: #2E2E48;
+  --sidebar-ring: #60A5FA;
+
+  /* Override shadow for dark mode */
+  --shadow-focus: 0 0 0 3px rgba(96, 165, 250, 0.3);
 }
 
 /* ============================================
@@ -177,68 +207,9 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
-  --color-teal-50: var(--color-teal-50);
-  --color-teal-100: var(--color-teal-100);
-  --color-teal-200: var(--color-teal-200);
-  --color-teal-300: var(--color-teal-300);
-  --color-teal-400: var(--color-teal-400);
-  --color-teal-500: var(--color-teal-500);
-  --color-teal-600: var(--color-teal-600);
-  --color-teal-700: var(--color-teal-700);
-  --color-teal-800: var(--color-teal-800);
-  --color-teal-900: var(--color-teal-900);
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
   --color-danger: var(--color-danger);
-}
-
-/* ============================================
-   DESIGN LAB OVERRIDABLE TOKENS
-   ============================================ */
-:root {
-  --card-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --card-border-width: 1px;
-}
-
-[data-slot="card"] {
-  box-shadow: var(--card-shadow) !important;
-  border-width: var(--card-border-width) !important;
-}
-
-/* Button style overrides */
-html[data-button-style="pill"] [data-slot="button"] {
-  border-radius: 9999px !important;
-}
-html[data-button-style="sharp"] [data-slot="button"] {
-  border-radius: 0 !important;
-}
-html[data-button-style="outline-heavy"] [data-slot="button"][data-variant="default"] {
-  background: transparent !important;
-  color: var(--primary) !important;
-  border: 2px solid var(--primary) !important;
-  box-shadow: none !important;
-}
-html[data-button-style="outline-heavy"] [data-slot="button"][data-variant="default"]:hover {
-  background: var(--primary) !important;
-  color: var(--primary-foreground) !important;
-}
-
-/* Card style overrides */
-html[data-card-style="elevated"] [data-slot="card"] {
-  border-width: 0 !important;
-  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1), 0 4px 10px -4px rgb(0 0 0 / 0.06) !important;
-}
-html[data-card-style="flat"] [data-slot="card"] {
-  border-width: 0 !important;
-  box-shadow: none !important;
-  background: var(--muted) !important;
-}
-html[data-card-style="glass"] [data-slot="card"] {
-  background: color-mix(in srgb, var(--card) 70%, transparent) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border-width: 1px !important;
-  border-color: color-mix(in srgb, var(--border) 50%, transparent) !important;
 }
 
 /* ============================================
@@ -252,6 +223,7 @@ html[data-card-style="glass"] [data-slot="card"] {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
   }
 }
 
@@ -265,14 +237,19 @@ html[data-card-style="glass"] [data-slot="card"] {
   .safe-top {
     padding-top: env(safe-area-inset-top, 0px);
   }
+  .prose-measure {
+    max-width: var(--measure);
+  }
 }
 
 /* ============================================
    ACCESSIBILITY
    ============================================ */
 @media (prefers-reduced-motion: reduce) {
-  * {
-    transition-duration: 0.01ms !important;
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
