@@ -203,7 +203,15 @@ export default function CaseDifferentialPage() {
 
       if (noteResult.data) {
         const note = noteResult.data as FcmNote;
-        setNoteContent(note.content || "");
+        // Filter out Plan Ahead structured data stored in same content field
+        let content = note.content || "";
+        try {
+          const parsed = JSON.parse(content);
+          if (parsed.__planv2) content = "";
+        } catch {
+          // Not JSON — normal note text, use as-is
+        }
+        setNoteContent(content);
         if (note.is_sent_to_instructor) setQuestionSent(true);
       }
 

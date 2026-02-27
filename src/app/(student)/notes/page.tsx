@@ -109,7 +109,19 @@ export default function NotesPage() {
     );
   }
 
-  const starredNotes = notes.filter((n) => n.is_starred && n.content);
+  // Filter out Plan Ahead structured data from note content for display
+  function displayContent(content: string | null): string {
+    if (!content) return "";
+    try {
+      const parsed = JSON.parse(content);
+      if (parsed.__planv2) return "";
+    } catch {
+      // Not JSON — normal note text
+    }
+    return content;
+  }
+
+  const starredNotes = notes.filter((n) => n.is_starred && displayContent(n.content));
   const displayNotes = view === "osce" ? starredNotes : notes;
 
   // Cases that don't have notes yet
@@ -206,7 +218,7 @@ export default function NotesPage() {
                     >
                       Done
                     </Button>
-                    {!note.is_sent_to_instructor && note.content && (
+                    {!note.is_sent_to_instructor && displayContent(note.content) && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -223,10 +235,10 @@ export default function NotesPage() {
                   className="text-sm cursor-pointer whitespace-pre-wrap"
                   onClick={() => {
                     setEditingNote(note.id);
-                    setEditContent(note.content || "");
+                    setEditContent(displayContent(note.content));
                   }}
                 >
-                  {note.content || (
+                  {displayContent(note.content) || (
                     <span className="text-muted-foreground italic">
                       Tap to add notes...
                     </span>
