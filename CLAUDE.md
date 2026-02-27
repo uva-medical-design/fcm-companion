@@ -45,7 +45,7 @@ FCM Companion is a mobile-first web app for UVA medical students to practice dif
 - Practice mode 3-way toggle: "Essential" (default) / "Full Case" / "Simulation" — persisted in localStorage (`practice-mode` key, values: `differential`, `full`, `simulation`)
 - Topic voting: stored in `fcm_notes` with `[TOPIC VOTE]` prefix and `is_sent_to_instructor: true`
 - Responsive layout: mobile bottom nav + desktop sidebar (md breakpoint). Sidebar uses `h-dvh sticky top-0` to stay viewport-pinned with user info always visible.
-- Student nav: Cases, Try a Case, OSCE Prep, Plan Ahead, Notes, Resources, Design Lab
+- Student nav: Cases, Try a Case, Plan Ahead, OSCE Prep, Notes, Resources (Design Lab removed from nav Feb 27; route still at /design-lab)
 
 - `src/sw.ts` — Serwist service worker for PWA
 
